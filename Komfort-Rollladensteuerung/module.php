@@ -12,7 +12,7 @@
  * @license     CC BY-NC-SA 4.0
  *              https://creativecommons.org/licenses/by-nc-sa/4.0/
  *
- * @version     2.00-4
+ * @version     2.00-5
  * @date        2020-04-16, 18:00, 1587056400
  * @review      2020-04-16, 18:00
  *
@@ -97,6 +97,8 @@ class KomfortRollladensteuerung extends IPSModule
         $this->SetSwitchingTimes();
         // Check door and windows
         $this->CheckDoorWindowSensors();
+        // Update blind slider
+        $this->UpdateBlindSlider();
     }
 
     public function Destroy()
@@ -812,6 +814,19 @@ class KomfortRollladensteuerung extends IPSModule
             $actualPosition = intval($this->GetActualBlindPosition());
             $this->SendDebug(__FUNCTION__, 'Neue Position: ' . $actualPosition . '%.', 0);
             $this->SetValue('BlindSlider', $actualPosition);
+            $profile = 'KRS.' . $this->InstanceID . '.PositionPresets';
+            $associations = IPS_GetVariableProfile($profile)['Associations'];
+            if (!empty($associations)) {
+                $closestPreset = null;
+                foreach ($associations as $association) {
+                    if ($closestPreset === null || abs($actualPosition - $closestPreset) > abs($association['Value'] - $actualPosition)) {
+                        $closestPreset = $association['Value'];
+                    }
+                }
+            }
+            if (isset($closestPreset)) {
+                $this->SetValue('PositionPresets', $closestPreset);
+            }
             if ($this->ReadPropertyBoolean('BlindSliderUpdateSetpointPosition')) {
                 $this->SetValue('SetpointPosition', $actualPosition);
             }
