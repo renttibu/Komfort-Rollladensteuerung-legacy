@@ -12,7 +12,7 @@
  * @license     CC BY-NC-SA 4.0
  *              https://creativecommons.org/licenses/by-nc-sa/4.0/
  *
- * @version     2.00-5
+ * @version     2.00-6
  * @date        2020-04-16, 18:00, 1587056400
  * @review      2020-04-16, 18:00
  *
@@ -813,7 +813,12 @@ class KomfortRollladensteuerung extends IPSModule
         if ($id != 0 && @IPS_ObjectExists($id)) {
             $actualPosition = intval($this->GetActualBlindPosition());
             $this->SendDebug(__FUNCTION__, 'Neue Position: ' . $actualPosition . '%.', 0);
-            $this->SetValue('BlindSlider', $actualPosition);
+            $blindMode = 0;
+            if ($actualPosition > 0) {
+                $blindMode = 2;
+            }
+            $this->SetValue('BlindMode', intval($blindMode));
+            $this->SetValue('BlindSlider', intval($actualPosition));
             $profile = 'KRS.' . $this->InstanceID . '.PositionPresets';
             $associations = IPS_GetVariableProfile($profile)['Associations'];
             if (!empty($associations)) {
