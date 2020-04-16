@@ -1,0 +1,12 @@
+{
+  "id": "{ECB37AE6-38B5-88A5-DC79-D8E0DD1879B2}",
+  "author": "Ulrich Bittner",
+  "name": "Komfort-Rollladensteuerung",
+  "url": "https://github.com/ubittner/Komfort-Rollladensteuerung",
+  "compatibility": {
+    "version": "5.3"
+  },
+  "version": "2.00",
+  "build": 3,
+  "date": 1587056400
+}

@@ -1,0 +1,14 @@
+{
+  "id": "{A346C14F-D31A-2E75-F0CA-5A5F2709C125}",
+  "name": "KomfortRollladensteuerung",
+  "type": 3,
+  "vendor": "NTUB",
+  "url": "https://github.com/ubittner/Komfort-Rollladensteuerung",
+  "aliases": [
+    "Komfort-Rollladensteuerung"
+  ],
+  "parentRequirements": [],
+  "childRequirements": [],
+  "implemented": [],
+  "prefix": "KRS"
+}
