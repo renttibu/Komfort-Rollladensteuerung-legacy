@@ -12,7 +12,7 @@
  * @license     CC BY-NC-SA 4.0
  *              https://creativecommons.org/licenses/by-nc-sa/4.0/
  *
- * @version     2.00-7
+ * @version     2.00-8
  * @date        2020-04-16, 18:00, 1587056400
  * @review      2020-04-16, 18:00
  *
@@ -351,7 +351,9 @@ class KomfortRollladensteuerung extends IPSModule
         $this->RegisterPropertyBoolean('PositionPresetsUpdateSetpointPosition', false);
         $this->RegisterPropertyString('PositionPresets', '[{"Value":0,"Text":"0 %"},{"Value":25,"Text":"25 %"}, {"Value":50,"Text":"50 %"},{"Value":75,"Text":"75 %"},{"Value":100,"Text":"100 %"}]');
         $this->RegisterPropertyBoolean('EnableSetpointPosition', true);
+        $this->RegisterPropertyBoolean('EnableSetpointPositionManualChange', true);
         $this->RegisterPropertyBoolean('EnableLastPosition', true);
+        $this->RegisterPropertyBoolean('EnableLastPositionManualChange', true);
         $this->RegisterPropertyBoolean('EnableDoorWindowStatus', true);
         $this->RegisterPropertyBoolean('EnableBlindModeTimer', true);
         $this->RegisterPropertyBoolean('EnableSleepModeTimer', true);
@@ -689,8 +691,20 @@ class KomfortRollladensteuerung extends IPSModule
         IPS_SetHidden($this->GetIDForIdent('PositionPresets'), !$this->ReadPropertyBoolean('EnablePositionPresets'));
         // Setpoint position
         IPS_SetHidden($this->GetIDForIdent('SetpointPosition'), !$this->ReadPropertyBoolean('EnableSetpointPosition'));
+        $manualChange = $this->ReadPropertyBoolean('EnableSetpointPositionManualChange');
+        if (!$manualChange) {
+            $this->DisableAction('SetpointPosition');
+        } else {
+            $this->EnableAction('SetpointPosition');
+        }
         // Last position
         IPS_SetHidden($this->GetIDForIdent('LastPosition'), !$this->ReadPropertyBoolean('EnableLastPosition'));
+        $manualChange = $this->ReadPropertyBoolean('EnableLastPositionManualChange');
+        if (!$manualChange) {
+            $this->DisableAction('LastPosition');
+        } else {
+            $this->EnableAction('LastPosition');
+        }
         // Door and window status
         IPS_SetHidden($this->GetIDForIdent('DoorWindowStatus'), !$this->ReadPropertyBoolean('EnableDoorWindowStatus'));
         // Blind mode timer

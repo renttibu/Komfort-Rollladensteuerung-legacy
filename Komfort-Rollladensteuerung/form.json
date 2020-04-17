@@ -26,7 +26,7 @@
         },
         {
           "type": "Label",
-          "caption": "Version:\t\t\t2.00-7"
+          "caption": "Version:\t\t\t2.00-8"
         },
         {
           "type": "Label",
@@ -599,9 +599,39 @@
           "caption": "Soll-Position"
         },
         {
+          "type": "ExpansionPanel",
+          "caption": "Soll-Position Optionen",
+          "items": [
+            {
+              "type": "CheckBox",
+              "name": "EnableSetpointPositionManualChange",
+              "caption": "Manuelle Änderung"
+            }
+          ]
+        },
+        {
+          "type": "Label",
+          "caption": " "
+        },
+        {
           "type": "CheckBox",
           "name": "EnableLastPosition",
           "caption": "Letzte Position"
+        },
+        {
+          "type": "ExpansionPanel",
+          "caption": "Letzte Position Optionen",
+          "items": [
+            {
+              "type": "CheckBox",
+              "name": "EnableLastPositionManualChange",
+              "caption": "Manuelle Änderung"
+            }
+          ]
+        },
+        {
+          "type": "Label",
+          "caption": " "
         },
         {
           "type": "CheckBox",
