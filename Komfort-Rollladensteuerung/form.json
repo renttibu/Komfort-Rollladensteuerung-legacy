@@ -26,7 +26,7 @@
         },
         {
           "type": "Label",
-          "caption": "Version:\t\t\t2.00-6"
+          "caption": "Version:\t\t\t2.00-7"
         },
         {
           "type": "Label",
@@ -60,29 +60,38 @@
         },
         {
           "type": "CheckBox",
+          "name": "InstanceActive",
+          "caption": "Komfort-Rollladensteuerung"
+        },
+        {
+          "type": "CheckBox",
           "name": "EnableAutomaticMode",
           "caption": "Automatik"
         },
         {
-          "type": "RowLayout",
+          "type": "Label",
+          "caption": " "
+        },
+        {
+          "type": "CheckBox",
+          "name": "EnableSleepMode",
+          "caption": "Ruhe-Modus"
+        },
+        {
+          "type": "ExpansionPanel",
+          "caption": "Ruhe-Modus Optionen",
           "items": [
-            {
-              "type": "CheckBox",
-              "name": "EnableSleepMode",
-              "caption": "Ruhe-Modus"
-            },
-            {
-              "type": "Label",
-              "caption": " "
-            },
             {
               "type": "NumberSpinner",
               "name": "SleepDuration",
               "caption": "Dauer",
-              "suffix": "h",
-              "width": "50px"
+              "suffix": "h"
             }
           ]
+        },
+        {
+          "type": "Label",
+          "caption": " "
         },
         {
           "type": "CheckBox",
@@ -90,407 +99,431 @@
           "caption": "Rollladen"
         },
         {
-          "type": "List",
-          "name": "CloseBlind",
-          "caption": "Schließen",
-          "rowCount": 1,
-          "columns": [
-            {
-              "name": "LabelCloseBlind",
-              "caption": "Schließen:",
-              "width": "150px",
-              "visible": false,
-              "edit": {
-                "type": "Label"
-              }
-            },
-            {
-              "name": "Position",
-              "caption": "Position",
-              "width": "100px",
-              "edit": {
-                "type": "NumberSpinner",
-                "suffix": " %",
-                "minimum": 0,
-                "maximum": 100
-              }
-            },
-            {
-              "name": "UpdateSetpointPosition",
-              "label": "Soll-Position anpassen",
-              "width": "200px",
-              "edit": {
-                "type": "CheckBox"
-              }
-            },
-            {
-              "name": "LabelSwitchingConditions",
-              "caption": "\nSchaltbedingungen:",
-              "width": "150px",
-              "visible": false,
-              "edit": {
-                "type": "Label"
-              }
-            },
-            {
-              "name": "CheckPositionDifference",
-              "caption": "Positionsunterschied",
-              "width": "190px",
-              "edit": {
-                "type": "NumberSpinner",
-                "suffix": " %",
-                "minimum": 0,
-                "maximum": 100
-              }
-            },
-            {
-              "name": "CheckLockoutProtection",
-              "caption": "Aussperrschutz",
-              "width": "190px",
-              "edit": {
-                "type": "NumberSpinner",
-                "suffix": " %",
-                "minimum": 0,
-                "maximum": 100
-              }
-            },
-            {
-              "name": "CheckAutomaticMode",
-              "caption": "Automatik",
-              "width": "150px",
-              "edit": {
-                "type": "Select",
-                "options": [
-                  {
-                    "caption": "Keine Prüfung",
-                    "value": 0
-                  },
-                  {
-                    "caption": "Aus",
-                    "value": 1
-                  },
-                  {
-                    "caption": "An",
-                    "value": 2
-                  }
-                ]
-              }
-            },
-            {
-              "name": "CheckSleepMode",
-              "caption": "Ruhe-Modus",
-              "width": "150px",
-              "edit": {
-                "type": "Select",
-                "options": [
-                  {
-                    "caption": "Keine Prüfung",
-                    "value": 0
-                  },
-                  {
-                    "caption": "Aus",
-                    "value": 1
-                  },
-                  {
-                    "caption": "An",
-                    "value": 2
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "type": "List",
-          "name": "Timer",
-          "caption": "Timer",
-          "rowCount": 1,
-          "columns": [
-            {
-              "name": "LabelTimer",
-              "caption": "Timer:",
-              "width": "150px",
-              "visible": false,
-              "edit": {
-                "type": "Label"
-              }
-            },
-            {
-              "name": "UseSettings",
-              "caption": "Aktiviert",
-              "width": "100px",
-              "add": true,
-              "edit": {
-                "type": "CheckBox"
-              }
-            },
-            {
-              "name": "Position",
-              "caption": "Position",
-              "width": "100px",
-              "edit": {
-                "type": "NumberSpinner",
-                "suffix": " %",
-                "minimum": 0,
-                "maximum": 100
-              }
-            },
-            {
-              "name": "UpdateSetpointPosition",
-              "label": "Soll-Position anpassen",
-              "width": "200px",
-              "edit": {
-                "type": "CheckBox"
-              }
-            },
-            {
-              "name": "Duration",
-              "caption": "Dauer",
-              "width": "100px",
-              "edit": {
-                "type": "NumberSpinner"
-              }
-            },
-            {
-              "name": "DurationUnit",
-              "caption": "Einheit",
-              "width": "100px",
-              "edit": {
-                "type": "Select",
-                "options": [
-                  {
-                    "caption": "Sekunden",
-                    "value": 0
-                  },
-                  {
-                    "caption": "Minuten",
-                    "value": 1
-                  }
-                ]
-              }
-            },
-            {
-              "name": "OriginPosition",
-              "caption": "Ursprungsposition",
-              "width": "170px",
-              "edit": {
-                "type": "Select",
-                "options": [
-                  {
-                    "caption": "Keine",
-                    "value": 0
-                  },
-                  {
-                    "caption": "Letzte Position",
-                    "value": 1
-                  },
-                  {
-                    "caption": "Soll-Position",
-                    "value": 2
-                  }
-                ]
-              }
-            },
-            {
-              "name": "LabelSwitchingConditions",
-              "caption": "\nSchaltbedingungen:",
-              "width": "150px",
-              "visible": false,
-              "edit": {
-                "type": "Label"
-              }
-            },
-            {
-              "name": "CheckPositionDifference",
-              "caption": "Positionsunterschied",
-              "width": "190px",
-              "edit": {
-                "type": "NumberSpinner",
-                "suffix": " %",
-                "minimum": 0,
-                "maximum": 100
-              }
-            },
-            {
-              "name": "CheckLockoutProtection",
-              "caption": "Aussperrschutz",
-              "width": "190px",
-              "edit": {
-                "type": "NumberSpinner",
-                "suffix": " %",
-                "minimum": 0,
-                "maximum": 100
-              }
-            },
-            {
-              "name": "CheckAutomaticMode",
-              "caption": "Automatik",
-              "width": "150px",
-              "edit": {
-                "type": "Select",
-                "options": [
-                  {
-                    "caption": "Keine Prüfung",
-                    "value": 0
-                  },
-                  {
-                    "caption": "Aus",
-                    "value": 1
-                  },
-                  {
-                    "caption": "An",
-                    "value": 2
-                  }
-                ]
-              }
-            },
-            {
-              "name": "CheckSleepMode",
-              "caption": "Ruhe-Modus",
-              "width": "150px",
-              "edit": {
-                "type": "Select",
-                "options": [
-                  {
-                    "caption": "Keine Prüfung",
-                    "value": 0
-                  },
-                  {
-                    "caption": "Aus",
-                    "value": 1
-                  },
-                  {
-                    "caption": "An",
-                    "value": 2
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "type": "List",
-          "name": "OpenBlind",
-          "caption": "Öffnen",
-          "rowCount": 1,
-          "columns": [
-            {
-              "name": "LabelCloseBlind",
-              "caption": "Öffnen:",
-              "width": "150px",
-              "visible": false,
-              "edit": {
-                "type": "Label"
-              }
-            },
-            {
-              "name": "Position",
-              "caption": "Position",
-              "width": "100px",
-              "edit": {
-                "type": "NumberSpinner",
-                "suffix": " %",
-                "minimum": 0,
-                "maximum": 100
-              }
-            },
-            {
-              "name": "UpdateSetpointPosition",
-              "label": "Soll-Position anpassen",
-              "width": "200px",
-              "edit": {
-                "type": "CheckBox"
-              }
-            },
-            {
-              "name": "LabelSwitchingConditions",
-              "caption": "\nSchaltbedingungen:",
-              "width": "150px",
-              "visible": false,
-              "edit": {
-                "type": "Label"
-              }
-            },
-            {
-              "name": "CheckPositionDifference",
-              "caption": "Positionsunterschied",
-              "width": "190px",
-              "edit": {
-                "type": "NumberSpinner",
-                "suffix": " %",
-                "minimum": 0,
-                "maximum": 100
-              }
-            },
-            {
-              "name": "CheckLockoutProtection",
-              "caption": "Aussperrschutz",
-              "width": "190px",
-              "edit": {
-                "type": "NumberSpinner",
-                "suffix": " %",
-                "minimum": 0,
-                "maximum": 100
-              }
-            },
-            {
-              "name": "CheckAutomaticMode",
-              "caption": "Automatik",
-              "width": "150px",
-              "edit": {
-                "type": "Select",
-                "options": [
-                  {
-                    "caption": "Keine Prüfung",
-                    "value": 0
-                  },
-                  {
-                    "caption": "Aus",
-                    "value": 1
-                  },
-                  {
-                    "caption": "An",
-                    "value": 2
-                  }
-                ]
-              }
-            },
-            {
-              "name": "CheckSleepMode",
-              "caption": "Ruhe-Modus",
-              "width": "150px",
-              "edit": {
-                "type": "Select",
-                "options": [
-                  {
-                    "caption": "Keine Prüfung",
-                    "value": 0
-                  },
-                  {
-                    "caption": "Aus",
-                    "value": 1
-                  },
-                  {
-                    "caption": "An",
-                    "value": 2
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "type": "RowLayout",
+          "type": "ExpansionPanel",
+          "caption": "Rollladen Optionen",
           "items": [
             {
-              "type": "CheckBox",
-              "name": "EnableBlindSlider",
-              "caption": "Rollladenposition"
+              "type": "List",
+              "name": "CloseBlind",
+              "caption": "Schließen",
+              "rowCount": 1,
+              "columns": [
+                {
+                  "name": "LabelCloseBlind",
+                  "caption": "Schließen:",
+                  "width": "150px",
+                  "visible": false,
+                  "edit": {
+                    "type": "Label"
+                  }
+                },
+                {
+                  "name": "Position",
+                  "caption": "Position",
+                  "width": "100px",
+                  "edit": {
+                    "type": "NumberSpinner",
+                    "suffix": " %",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                },
+                {
+                  "name": "UpdateSetpointPosition",
+                  "label": "Soll-Position anpassen",
+                  "width": "200px",
+                  "edit": {
+                    "type": "CheckBox"
+                  }
+                },
+                {
+                  "name": "LabelSwitchingConditions",
+                  "caption": "\nSchaltbedingungen:",
+                  "width": "150px",
+                  "visible": false,
+                  "edit": {
+                    "type": "Label"
+                  }
+                },
+                {
+                  "name": "CheckPositionDifference",
+                  "caption": "Positionsunterschied",
+                  "width": "190px",
+                  "edit": {
+                    "type": "NumberSpinner",
+                    "suffix": " %",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                },
+                {
+                  "name": "CheckLockoutProtection",
+                  "caption": "Aussperrschutz",
+                  "width": "190px",
+                  "edit": {
+                    "type": "NumberSpinner",
+                    "suffix": " %",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                },
+                {
+                  "name": "CheckAutomaticMode",
+                  "caption": "Automatik",
+                  "width": "150px",
+                  "edit": {
+                    "type": "Select",
+                    "options": [
+                      {
+                        "caption": "Keine Prüfung",
+                        "value": 0
+                      },
+                      {
+                        "caption": "Aus",
+                        "value": 1
+                      },
+                      {
+                        "caption": "An",
+                        "value": 2
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "CheckSleepMode",
+                  "caption": "Ruhe-Modus",
+                  "width": "150px",
+                  "edit": {
+                    "type": "Select",
+                    "options": [
+                      {
+                        "caption": "Keine Prüfung",
+                        "value": 0
+                      },
+                      {
+                        "caption": "Aus",
+                        "value": 1
+                      },
+                      {
+                        "caption": "An",
+                        "value": 2
+                      }
+                    ]
+                  }
+                }
+              ]
             },
             {
               "type": "Label",
               "caption": " "
             },
+            {
+              "type": "CheckBox",
+              "name": "EnableStopFunction",
+              "caption": "Stopfunktion"
+            },
+            {
+              "type": "Label",
+              "caption": " "
+            },
+            {
+              "type": "List",
+              "name": "Timer",
+              "caption": "Timer",
+              "rowCount": 1,
+              "columns": [
+                {
+                  "name": "LabelTimer",
+                  "caption": "Timer:",
+                  "width": "150px",
+                  "visible": false,
+                  "edit": {
+                    "type": "Label"
+                  }
+                },
+                {
+                  "name": "UseSettings",
+                  "caption": "Aktiviert",
+                  "width": "100px",
+                  "add": true,
+                  "edit": {
+                    "type": "CheckBox"
+                  }
+                },
+                {
+                  "name": "Position",
+                  "caption": "Position",
+                  "width": "100px",
+                  "edit": {
+                    "type": "NumberSpinner",
+                    "suffix": " %",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                },
+                {
+                  "name": "UpdateSetpointPosition",
+                  "label": "Soll-Position anpassen",
+                  "width": "200px",
+                  "edit": {
+                    "type": "CheckBox"
+                  }
+                },
+                {
+                  "name": "Duration",
+                  "caption": "Dauer",
+                  "width": "100px",
+                  "edit": {
+                    "type": "NumberSpinner"
+                  }
+                },
+                {
+                  "name": "DurationUnit",
+                  "caption": "Einheit",
+                  "width": "100px",
+                  "edit": {
+                    "type": "Select",
+                    "options": [
+                      {
+                        "caption": "Sekunden",
+                        "value": 0
+                      },
+                      {
+                        "caption": "Minuten",
+                        "value": 1
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "OriginPosition",
+                  "caption": "Ursprungsposition",
+                  "width": "170px",
+                  "edit": {
+                    "type": "Select",
+                    "options": [
+                      {
+                        "caption": "Keine",
+                        "value": 0
+                      },
+                      {
+                        "caption": "Letzte Position",
+                        "value": 1
+                      },
+                      {
+                        "caption": "Soll-Position",
+                        "value": 2
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "LabelSwitchingConditions",
+                  "caption": "\nSchaltbedingungen:",
+                  "width": "150px",
+                  "visible": false,
+                  "edit": {
+                    "type": "Label"
+                  }
+                },
+                {
+                  "name": "CheckPositionDifference",
+                  "caption": "Positionsunterschied",
+                  "width": "190px",
+                  "edit": {
+                    "type": "NumberSpinner",
+                    "suffix": " %",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                },
+                {
+                  "name": "CheckLockoutProtection",
+                  "caption": "Aussperrschutz",
+                  "width": "190px",
+                  "edit": {
+                    "type": "NumberSpinner",
+                    "suffix": " %",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                },
+                {
+                  "name": "CheckAutomaticMode",
+                  "caption": "Automatik",
+                  "width": "150px",
+                  "edit": {
+                    "type": "Select",
+                    "options": [
+                      {
+                        "caption": "Keine Prüfung",
+                        "value": 0
+                      },
+                      {
+                        "caption": "Aus",
+                        "value": 1
+                      },
+                      {
+                        "caption": "An",
+                        "value": 2
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "CheckSleepMode",
+                  "caption": "Ruhe-Modus",
+                  "width": "150px",
+                  "edit": {
+                    "type": "Select",
+                    "options": [
+                      {
+                        "caption": "Keine Prüfung",
+                        "value": 0
+                      },
+                      {
+                        "caption": "Aus",
+                        "value": 1
+                      },
+                      {
+                        "caption": "An",
+                        "value": 2
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "type": "Label",
+              "caption": " "
+            },
+            {
+              "type": "List",
+              "name": "OpenBlind",
+              "caption": "Öffnen",
+              "rowCount": 1,
+              "columns": [
+                {
+                  "name": "LabelCloseBlind",
+                  "caption": "Öffnen:",
+                  "width": "150px",
+                  "visible": false,
+                  "edit": {
+                    "type": "Label"
+                  }
+                },
+                {
+                  "name": "Position",
+                  "caption": "Position",
+                  "width": "100px",
+                  "edit": {
+                    "type": "NumberSpinner",
+                    "suffix": " %",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                },
+                {
+                  "name": "UpdateSetpointPosition",
+                  "label": "Soll-Position anpassen",
+                  "width": "200px",
+                  "edit": {
+                    "type": "CheckBox"
+                  }
+                },
+                {
+                  "name": "LabelSwitchingConditions",
+                  "caption": "\nSchaltbedingungen:",
+                  "width": "150px",
+                  "visible": false,
+                  "edit": {
+                    "type": "Label"
+                  }
+                },
+                {
+                  "name": "CheckPositionDifference",
+                  "caption": "Positionsunterschied",
+                  "width": "190px",
+                  "edit": {
+                    "type": "NumberSpinner",
+                    "suffix": " %",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                },
+                {
+                  "name": "CheckLockoutProtection",
+                  "caption": "Aussperrschutz",
+                  "width": "190px",
+                  "edit": {
+                    "type": "NumberSpinner",
+                    "suffix": " %",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                },
+                {
+                  "name": "CheckAutomaticMode",
+                  "caption": "Automatik",
+                  "width": "150px",
+                  "edit": {
+                    "type": "Select",
+                    "options": [
+                      {
+                        "caption": "Keine Prüfung",
+                        "value": 0
+                      },
+                      {
+                        "caption": "Aus",
+                        "value": 1
+                      },
+                      {
+                        "caption": "An",
+                        "value": 2
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "CheckSleepMode",
+                  "caption": "Ruhe-Modus",
+                  "width": "150px",
+                  "edit": {
+                    "type": "Select",
+                    "options": [
+                      {
+                        "caption": "Keine Prüfung",
+                        "value": 0
+                      },
+                      {
+                        "caption": "Aus",
+                        "value": 1
+                      },
+                      {
+                        "caption": "An",
+                        "value": 2
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Label",
+          "caption": " "
+        },
+        {
+          "type": "CheckBox",
+          "name": "EnableBlindSlider",
+          "caption": "Rollladenposition"
+        },
+        {
+          "type": "ExpansionPanel",
+          "caption": "Rollladenposition Optionen",
+          "items": [
             {
               "type": "CheckBox",
               "name": "BlindSliderUpdateSetpointPosition",
@@ -499,55 +532,56 @@
           ]
         },
         {
-          "type": "RowLayout",
+          "type": "Label",
+          "caption": " "
+        },
+        {
+          "type": "CheckBox",
+          "name": "EnablePositionPresets",
+          "caption": "Position Voreinstellungen"
+        },
+        {
+          "type": "ExpansionPanel",
+          "caption": "Position Voreinstellungen Optionen",
           "items": [
-            {
-              "type": "CheckBox",
-              "name": "EnablePositionPresets",
-              "caption": "Position Voreinstellungen"
-            },
-            {
-              "type": "Label",
-              "caption": " "
-            },
             {
               "type": "CheckBox",
               "name": "PositionPresetsUpdateSetpointPosition",
               "caption": "Soll-Position anpassen"
-            }
-          ]
-        },
-        {
-          "type": "List",
-          "name": "PositionPresets",
-          "rowCount": 5,
-          "add": true,
-          "delete": true,
-          "sort": {
-            "column": "Value",
-            "direction": "ascending"
-          },
-          "columns": [
-            {
-              "name": "Value",
-              "caption": "Wert",
-              "width": "100px",
-              "add": 0,
-              "edit": {
-                "type": "NumberSpinner",
-                "suffix": " %",
-                "minimum": 0,
-                "maximum": 100
-              }
             },
             {
-              "name": "Text",
-              "caption": "Text",
-              "width": "100px",
-              "add": "",
-              "edit": {
-                "type": "ValidationTextBox"
-              }
+              "type": "List",
+              "name": "PositionPresets",
+              "rowCount": 5,
+              "add": true,
+              "delete": true,
+              "sort": {
+                "column": "Value",
+                "direction": "ascending"
+              },
+              "columns": [
+                {
+                  "name": "Value",
+                  "caption": "Wert",
+                  "width": "100px",
+                  "add": 0,
+                  "edit": {
+                    "type": "NumberSpinner",
+                    "suffix": " %",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                },
+                {
+                  "name": "Text",
+                  "caption": "Text",
+                  "width": "100px",
+                  "add": "",
+                  "edit": {
+                    "type": "ValidationTextBox"
+                  }
+                }
+              ]
             }
           ]
         },

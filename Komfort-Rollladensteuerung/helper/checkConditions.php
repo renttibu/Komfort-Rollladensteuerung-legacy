@@ -248,11 +248,11 @@ trait KRS_checkConditions
     {
         $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
         $result = true;
-        $blindMode = intval($this->GetValue('BlindMode')); // 0 = closed, 1 = timer, 2 = opened
+        $blindMode = intval($this->GetValue('BlindMode')); // 0 = closed, 1 = stop, 2 = timer, 3 = opened
         switch ($Condition) {
             // Blind must be closed
             case 1:
-                if ($blindMode == 1 || $blindMode == 2) { // Timer is on or blind is opened
+                if ($blindMode == 2 || $blindMode == 3) { // Timer is on or blind is opened
                     $this->SendDebug(__FUNCTION__, 'Bedingung: 1 = Geschlossen', 0);
                     $this->SendDebug(__FUNCTION__, 'Abbruch, der Rolladen ist nicht geschlossen!', 0);
                     $result = false;
@@ -261,7 +261,7 @@ trait KRS_checkConditions
 
             // Timer must be on
             case 2:
-                if ($blindMode == 0 || $blindMode == 2) { // Blind is closed or opened
+                if ($blindMode == 0 || $blindMode == 3) { // Blind is closed or opened
                     $this->SendDebug(__FUNCTION__, 'Bedingung: 2 = Timer', 0);
                     $this->SendDebug(__FUNCTION__, 'Abbruch, der Timer ist nicht aktiv!', 0);
                     $result = false;
@@ -279,7 +279,7 @@ trait KRS_checkConditions
 
             // Blind must be opened
             case 4:
-                if ($blindMode == 0 || $blindMode == 1) { // Blind is closed or timer is on
+                if ($blindMode == 0 || $blindMode == 2) { // Blind is closed or timer is on
                     $this->SendDebug(__FUNCTION__, 'Bedingung: 4 =  Geöffnet', 0);
                     $this->SendDebug(__FUNCTION__, 'Abbruch, der Rolladen ist nicht geöffnet!', 0);
                     $result = false;

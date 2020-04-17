@@ -12,7 +12,7 @@
  * @license     CC BY-NC-SA 4.0
  *              https://creativecommons.org/licenses/by-nc-sa/4.0/
  *
- * @version     2.00-6
+ * @version     2.00-7
  * @date        2020-04-16, 18:00, 1587056400
  * @review      2020-04-16, 18:00
  *
@@ -99,6 +99,8 @@ class KomfortRollladensteuerung extends IPSModule
         $this->CheckDoorWindowSensors();
         // Update blind slider
         $this->UpdateBlindSlider();
+        // Check instance status
+        $this->CheckInstanceStatus();
     }
 
     public function Destroy()
@@ -252,8 +254,9 @@ class KomfortRollladensteuerung extends IPSModule
      *
      * @param int $Mode
      * 0    = close blind
-     * 1    = timer
-     * 2    = open blind
+     * 1    = stop
+     * 2    = timer
+     * 3    = open blind
      */
     public function ExecuteBlindMode(int $Mode): void
     {
@@ -269,8 +272,14 @@ class KomfortRollladensteuerung extends IPSModule
                 $this->MoveBlind($position, 0, 0);
                 break;
 
-            // Timer
+            // Stop
             case 1:
+                $this->SetValue('BlindMode', 1);
+                $this->StopBlindMoving();
+                break;
+
+            // Timer
+            case 2:
                 $settings = json_decode($this->ReadPropertyString('Timer'), true)[0];
                 $position = intval($settings['Position']);
                 if (boolval($settings['UpdateSetpointPosition'])) {
@@ -282,7 +291,7 @@ class KomfortRollladensteuerung extends IPSModule
                 break;
 
             // Open
-            case 2:
+            case 3:
                 $settings = json_decode($this->ReadPropertyString('OpenBlind'), true)[0];
                 $position = intval($settings['Position']);
                 if (boolval($settings['UpdateSetpointPosition'])) {
@@ -327,11 +336,13 @@ class KomfortRollladensteuerung extends IPSModule
     private function RegisterProperties(): void
     {
         // General options
+        $this->RegisterPropertyBoolean('InstanceActive', true);
         $this->RegisterPropertyBoolean('EnableAutomaticMode', true);
         $this->RegisterPropertyBoolean('EnableSleepMode', true);
         $this->RegisterPropertyInteger('SleepDuration', 12);
         $this->RegisterPropertyBoolean('EnableBlindMode', true);
         $this->RegisterPropertyString('CloseBlind', '[{"LabelCloseBlind":"","Position":0,"UpdateSetpointPosition":false,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0}]');
+        $this->RegisterPropertyBoolean('EnableStopFunction', true);
         $this->RegisterPropertyString('Timer', '[{"LabelTimer":"","UseSettings":true,"Position":50,"UpdateSetpointPosition":false,"Duration":30,"DurationUnit":1,"OriginPosition":2,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0}]');
         $this->RegisterPropertyString('OpenBlind', '[{"LabelOpenBlind":"","Position":100,"UpdateSetpointPosition":false,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0}]');
         $this->RegisterPropertyBoolean('EnableBlindSlider', true);
@@ -416,8 +427,9 @@ class KomfortRollladensteuerung extends IPSModule
         }
         IPS_SetVariableProfileIcon($profile, 'Shutter');
         IPS_SetVariableProfileAssociation($profile, 0, 'Schließen', '', 0x0000FF);
-        IPS_SetVariableProfileAssociation($profile, 1, 'Timer', '', 0xFFFF00);
-        IPS_SetVariableProfileAssociation($profile, 2, 'Öffnen', '', 0x00FF00);
+        IPS_SetVariableProfileAssociation($profile, 1, 'Stop', '', 0xFF0000);
+        IPS_SetVariableProfileAssociation($profile, 2, 'Timer', '', 0xFFFF00);
+        IPS_SetVariableProfileAssociation($profile, 3, 'Öffnen', '', 0x00FF00);
         // Position presets
         $profile = 'KRS.' . $this->InstanceID . '.PositionPresets';
         if (!IPS_VariableProfileExists($profile)) {
@@ -649,13 +661,27 @@ class KomfortRollladensteuerung extends IPSModule
         // Blind Mode
         IPS_SetHidden($this->GetIDForIdent('BlindMode'), !$this->ReadPropertyBoolean('EnableBlindMode'));
         // Blind mode timer
-        $useSettings = json_decode($this->ReadPropertyString('Timer'), true)[0]['UseSettings'];
         $profile = 'KRS.' . $this->InstanceID . '.BlindMode';
+        $associations = IPS_GetVariableProfile($profile)['Associations'];
+        $useStopFunction = $this->ReadPropertyBoolean('EnableStopFunction');
+        if (!$useStopFunction) {
+            // Delete
+            $key = array_search(1, array_column($associations, 'Value'));
+            if (is_int($key)) {
+                IPS_SetVariableProfileAssociation($profile, 1, '', '', -1);
+            }
+        } else {
+            IPS_SetVariableProfileAssociation($profile, 1, 'Stop', '', 0xFF0000);
+        }
+        $useSettings = json_decode($this->ReadPropertyString('Timer'), true)[0]['UseSettings'];
         if (!$useSettings) {
             // Delete
-            IPS_SetVariableProfileAssociation($profile, 1, '', '', -1);
+            $key = array_search(2, array_column($associations, 'Value'));
+            if (is_int($key)) {
+                IPS_SetVariableProfileAssociation($profile, 2, '', '', -1);
+            }
         } else {
-            IPS_SetVariableProfileAssociation($profile, 1, 'Timer', '', 0xFFFF00);
+            IPS_SetVariableProfileAssociation($profile, 2, 'Timer', '', 0xFFFF00);
         }
         // Blind slider
         IPS_SetHidden($this->GetIDForIdent('BlindSlider'), !$this->ReadPropertyBoolean('EnableBlindSlider'));
@@ -808,34 +834,51 @@ class KomfortRollladensteuerung extends IPSModule
      */
     private function UpdateBlindSlider(): void
     {
-        $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt (' . microtime(true) . ')', 0);
-        $id = $this->ReadPropertyInteger('ActuatorBlindPosition');
+        $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
+        $id = $this->ReadPropertyInteger('ActuatorActivityStatus');
         if ($id != 0 && @IPS_ObjectExists($id)) {
-            $actualPosition = intval($this->GetActualBlindPosition());
-            $this->SendDebug(__FUNCTION__, 'Neue Position: ' . $actualPosition . '%.', 0);
-            $blindMode = 0;
-            if ($actualPosition > 0) {
-                $blindMode = 2;
-            }
-            $this->SetValue('BlindMode', intval($blindMode));
-            $this->SetValue('BlindSlider', intval($actualPosition));
-            $profile = 'KRS.' . $this->InstanceID . '.PositionPresets';
-            $associations = IPS_GetVariableProfile($profile)['Associations'];
-            if (!empty($associations)) {
-                $closestPreset = null;
-                foreach ($associations as $association) {
-                    if ($closestPreset === null || abs($actualPosition - $closestPreset) > abs($association['Value'] - $actualPosition)) {
-                        $closestPreset = $association['Value'];
+            if (GetValue($id) == 0) {
+                $id = $this->ReadPropertyInteger('ActuatorBlindPosition');
+                if ($id != 0 && @IPS_ObjectExists($id)) {
+                    $actualPosition = intval($this->GetActualBlindPosition());
+                    $this->SendDebug(__FUNCTION__, 'Neue Position: ' . $actualPosition . '%.', 0);
+                    $blindMode = 0;
+                    if ($actualPosition > 0) {
+                        $blindMode = 3;
                     }
+                    $this->SetValue('BlindMode', intval($blindMode));
+                    $this->SetValue('BlindSlider', intval($actualPosition));
+                    $profile = 'KRS.' . $this->InstanceID . '.PositionPresets';
+                    $associations = IPS_GetVariableProfile($profile)['Associations'];
+                    if (!empty($associations)) {
+                        $closestPreset = null;
+                        foreach ($associations as $association) {
+                            if ($closestPreset === null || abs($actualPosition - $closestPreset) > abs($association['Value'] - $actualPosition)) {
+                                $closestPreset = $association['Value'];
+                            }
+                        }
+                    }
+                    if (isset($closestPreset)) {
+                        $this->SetValue('PositionPresets', $closestPreset);
+                    }
+                    if ($this->ReadPropertyBoolean('BlindSliderUpdateSetpointPosition')) {
+                        $this->SetValue('SetpointPosition', $actualPosition);
+                    }
+                    $this->SetValue('LastPosition', $actualPosition);
                 }
             }
-            if (isset($closestPreset)) {
-                $this->SetValue('PositionPresets', $closestPreset);
-            }
-            if ($this->ReadPropertyBoolean('BlindSliderUpdateSetpointPosition')) {
-                $this->SetValue('SetpointPosition', $actualPosition);
-            }
-            $this->SetValue('LastPosition', $actualPosition);
         }
+    }
+
+    private function CheckInstanceStatus(): void
+    {
+        $status = 102;
+        $disabled = false;
+        if (!$this->ReadPropertyBoolean('InstanceActive')) {
+            $status = 104;
+            $disabled = true;
+        }
+        $this->SetStatus($status);
+        IPS_SetDisabled($this->InstanceID, $disabled);
     }
 }

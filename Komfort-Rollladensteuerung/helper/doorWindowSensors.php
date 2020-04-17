@@ -15,7 +15,7 @@ trait KRS_doorWindowSensors
      */
     private function CheckDoorWindowSensors(): void
     {
-        $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt (' . microtime(true) . ')', 0);
+        $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
         $status = false;
         $doorWindowStatus = boolval($this->GetValue('DoorWindowStatus'));
         $doorWindowSensors = json_decode($this->ReadPropertyString('DoorWindowSensors'));

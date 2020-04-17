@@ -20,18 +20,27 @@ trait KRS_moveBlind
     {
         $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
         $result = false;
+        $instanceActive = $this->ReadPropertyBoolean('InstanceActive');
+        if (!$instanceActive) {
+            $this->SendDebug(__FUNCTION__, 'Abbruch, die Instanz ist inaktiv!', 0);
+            $this->LogMessage('ID ' . $this->InstanceID . ', ' . __FUNCTION__ . ' Abbruch, die Instanz ist inaktiv!', KL_WARNING);
+            return $result;
+        }
         $id = $this->ReadPropertyInteger('ActuatorControl');
         if ($id == 0 || !@IPS_ObjectExists($id)) {
             $this->SendDebug(__FUNCTION__, 'Abbruch, es ist kein Rollladenaktor vorhanden!', 0);
-            return false;
+            return $result;
         }
-        // Check activity status, if still running then stop blind
-        $setLevel = true;
+        // Check activity status
         $activityStatus = $this->ReadPropertyInteger('ActuatorActivityStatus');
         if ($activityStatus != 0 && @IPS_ObjectExists($activityStatus)) {
             if (intval(GetValue($activityStatus)) == 1) {
                 $this->SendDebug(__FUNCTION__, 'Die Rollladenfahrt ist noch nicht abgeschlossen!', 0);
-                $setLevel = false;
+                $useStopFunction = $this->ReadPropertyBoolean('EnableStopFunction');
+                if ($useStopFunction) {
+                    $this->StopBlindMoving();
+                    return $result;
+                }
             }
         }
         $actualBlindMode = intval($this->GetValue('BlindMode'));
@@ -46,15 +55,15 @@ trait KRS_moveBlind
         }
         // Timer
         if ($Position > 0 && $Duration != 0) {
-            $mode = 1;
+            $mode = 2;
             $modeText = 'bewegt (Timer)';
             $this->SetBlindTimer($Duration, $DurationUnit);
         }
         // On
         if ($Position > 0 && $Duration == 0) {
-            $mode = 2;
+            $mode = 3;
             $modeText = 'geöffnet';
-            if ($actualBlindMode == 1) {
+            if ($actualBlindMode == 2) {
                 $this->DeactivateBlindModeTimer();
             }
         }
@@ -80,79 +89,66 @@ trait KRS_moveBlind
             if (isset($closestPreset)) {
                 $this->SetValue('PositionPresets', $closestPreset);
             }
-            if ($setLevel) {
-                if ($id != 0 && @IPS_ObjectExists($id)) {
-                    $variableType = @IPS_GetVariable($id)['VariableType'];
-                    switch ($variableType) {
-                        // Boolean
-                        case 0:
-                            $actualVariableValue = boolval(GetValue($id));
-                            $newVariableValue = boolval($Position);
-                            if ($this->ReadPropertyInteger('ActuatorProperty') == 2) {
-                                $this->SendDebug(__FUNCTION__, 'Logik = 2 = geschlossen bei 100%', 0);
-                                $newVariableValue = !$newVariableValue;
-                            }
-                            break;
-
-                        // Integer
-                        case 1:
-                            $actualVariableValue = intval(GetValue($id));
-                            $newVariableValue = intval($Position);
-                            if ($this->ReadPropertyInteger('ActuatorProperty') == 2) {
-                                $this->SendDebug(__FUNCTION__, 'Logik = 2 = geschlossen bei 100%', 0);
-                                $newVariableValue = abs($newVariableValue - 100);
-                            }
-                            break;
-
-                        // Float
-                        case 2:
-                            $actualVariableValue = floatval(GetValue($id));
-                            $newVariableValue = floatval($Position / 100);
-                            if ($this->ReadPropertyInteger('ActuatorProperty') == 2) {
-                                $this->SendDebug(__FUNCTION__, 'Logik = 2 = geschlossen bei 100%', 0);
-                                $newVariableValue = abs($newVariableValue - 1);
-                            }
-                            break;
+            $variableType = @IPS_GetVariable($id)['VariableType'];
+            switch ($variableType) {
+                // Boolean
+                case 0:
+                    $actualVariableValue = boolval(GetValue($id));
+                    $newVariableValue = boolval($Position);
+                    if ($this->ReadPropertyInteger('ActuatorProperty') == 2) {
+                        $this->SendDebug(__FUNCTION__, 'Logik = 2 = geschlossen bei 100%', 0);
+                        $newVariableValue = !$newVariableValue;
                     }
-                    if (isset($actualVariableValue) && isset($newVariableValue)) {
-                        if ($actualVariableValue == $newVariableValue) {
-                            $this->SendDebug(__FUNCTION__, 'Abbruch, die Variable ' . $id . ' hat bereits den Wert: ' . json_encode($newVariableValue) . ' = ' . $Position . '%!', 0);
-                            return false;
-                        } else {
-                            $this->SendDebug(__FUNCTION__, 'Variable ' . $id . ', neuer Wert: ' . $newVariableValue . ', Position: ' . json_encode($Position) . '%', 0);
-                            $result = @RequestAction($id, $newVariableValue);
-                            if (!$result) {
-                                IPS_Sleep(self::DEVICE_DELAY_MILLISECONDS);
-                                $result = @RequestAction($id, $newVariableValue);
-                                if (!$result) {
-                                    if (isset($modeText)) {
-                                        $this->SendDebug(__FUNCTION__, 'Fehler, der Rolladen mit der ID ' . $id . ' konnte nicht ' . $modeText . ' werden!', 0);
-                                        IPS_LogMessage(__FUNCTION__, 'Fehler, der Rolladen mit der ID ' . $id . ' konnte nicht ' . $modeText . ' werden!');
-                                    }
-                                }
-                            }
-                            if (!$result) {
-                                // Revert switch
-                                $this->SetValue('BlindMode', $actualBlindMode);
-                                $this->SetValue('BlindSlider', $actualBlindSliderValue);
-                                $this->SetValue('PositionPresets', $actualPositionPreset);
-                                $this->SetValue('LastPosition', $actualLastPosition);
-                            } else {
-                                if (isset($modeText)) {
-                                    $this->SendDebug(__FUNCTION__, 'Der Rollladen wurde ' . $modeText . '.', 0);
-                                }
+                    break;
+
+                // Integer
+                case 1:
+                    $actualVariableValue = intval(GetValue($id));
+                    $newVariableValue = intval($Position);
+                    if ($this->ReadPropertyInteger('ActuatorProperty') == 2) {
+                        $this->SendDebug(__FUNCTION__, 'Logik = 2 = geschlossen bei 100%', 0);
+                        $newVariableValue = abs($newVariableValue - 100);
+                    }
+                    break;
+
+                // Float
+                case 2:
+                    $actualVariableValue = floatval(GetValue($id));
+                    $newVariableValue = floatval($Position / 100);
+                    if ($this->ReadPropertyInteger('ActuatorProperty') == 2) {
+                        $this->SendDebug(__FUNCTION__, 'Logik = 2 = geschlossen bei 100%', 0);
+                        $newVariableValue = abs($newVariableValue - 1);
+                    }
+                    break;
+            }
+            if (isset($actualVariableValue) && isset($newVariableValue)) {
+                if ($actualVariableValue == $newVariableValue) {
+                    $this->SendDebug(__FUNCTION__, 'Abbruch, die Variable ' . $id . ' hat bereits den Wert: ' . json_encode($newVariableValue) . ' = ' . $Position . '%!', 0);
+                    return false;
+                } else {
+                    $this->SendDebug(__FUNCTION__, 'Variable ' . $id . ', neuer Wert: ' . $newVariableValue . ', Position: ' . json_encode($Position) . '%', 0);
+                    $result = @RequestAction($id, $newVariableValue);
+                    if (!$result) {
+                        IPS_Sleep(self::DEVICE_DELAY_MILLISECONDS);
+                        $result = @RequestAction($id, $newVariableValue);
+                        if (!$result) {
+                            if (isset($modeText)) {
+                                $this->SendDebug(__FUNCTION__, 'Fehler, der Rolladen mit der ID ' . $id . ' konnte nicht ' . $modeText . ' werden!', 0);
+                                IPS_LogMessage(__FUNCTION__, 'Fehler, der Rolladen mit der ID ' . $id . ' konnte nicht ' . $modeText . ' werden!');
                             }
                         }
                     }
-                }
-            } else {
-                $parentID = IPS_GetParent($id);
-                $result = HM_WriteValueBoolean($parentID, 'STOP', true);
-                if (!$result) {
-                    $this->SendDebug(__FUNCTION__, 'Fehler, die Rollladenfahrt konnte nicht gestoppt werden!', 0);
-                    $this->LogMessage($this->InstanceID . ', ' . __FUNCTION__ . ' Fehler, die Rollladenfahrt konnte nicht gestoppt werden!', KL_ERROR);
-                } else {
-                    $this->SendDebug(__FUNCTION__, 'Die Rollladenfahrt wurde gestoppt', 0);
+                    if (!$result) {
+                        // Revert switch
+                        $this->SetValue('BlindMode', $actualBlindMode);
+                        $this->SetValue('BlindSlider', $actualBlindSliderValue);
+                        $this->SetValue('PositionPresets', $actualPositionPreset);
+                        $this->SetValue('LastPosition', $actualLastPosition);
+                    } else {
+                        if (isset($modeText)) {
+                            $this->SendDebug(__FUNCTION__, 'Der Rollladen wurde ' . $modeText . '.', 0);
+                        }
+                    }
                 }
             }
         }
@@ -187,6 +183,34 @@ trait KRS_moveBlind
     }
 
     //##################### Private
+
+    /**
+     * Stops the blind moving.
+     */
+    private function StopBlindMoving(): void
+    {
+        $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
+        $id = $this->ReadPropertyInteger('ActuatorControl');
+        if ($id == 0 || !@IPS_ObjectExists($id)) {
+            $this->SendDebug(__FUNCTION__, 'Abbruch, es ist kein Rollladenaktor vorhanden!', 0);
+            return;
+        }
+        $parent = IPS_GetParent($id);
+        if ($parent != 0 && @IPS_ObjectExists($parent)) {
+            $moduleID = IPS_GetInstance($parent)['ModuleInfo']['ModuleID'];
+            if ($moduleID !== self::HOMEMATIC_DEVICE_GUID) {
+                $this->SendDebug(__FUNCTION__, 'Abbruch, der zugewiesene Rollladenaktor ist kein Homematic Gerät!', 0);
+                return;
+            }
+            $result = HM_WriteValueBoolean($parent, 'STOP', true);
+            if (!$result) {
+                $this->SendDebug(__FUNCTION__, 'Fehler, die Rollladenfahrt konnte nicht gestoppt werden!', 0);
+                $this->LogMessage('ID ' . $this->InstanceID . ', ' . __FUNCTION__ . ', Fehler, die Rollladenfahrt konnte nicht gestoppt werden!', KL_ERROR);
+            } else {
+                $this->SendDebug(__FUNCTION__, 'Die Rollladenfahrt wurde gestoppt.', 0);
+            }
+        }
+    }
 
     /**
      * Checks the moving direction of the blind.

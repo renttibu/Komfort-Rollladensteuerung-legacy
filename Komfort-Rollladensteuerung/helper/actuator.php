@@ -10,7 +10,7 @@ trait KRS_actuator
      */
     public function DetermineBlindActuatorVariables(): void
     {
-        $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt (' . microtime(true) . ')', 0);
+        $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
         $id = $this->ReadPropertyInteger('Actuator');
         if ($id == 0 || !@IPS_ObjectExists($id)) {
             return;

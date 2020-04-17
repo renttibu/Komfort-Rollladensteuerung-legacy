@@ -27,7 +27,7 @@ trait KRS_messageSink
                 if ($id != 0 && @IPS_ObjectExists($id)) {
                     if ($SenderID == $id) {
                         if ($Data[1]) {
-                            $this->SendDebug(__FUNCTION__, 'Die Rollladenposition hat sich geändert', 0);
+                            $this->SendDebug(__FUNCTION__, 'Die Rollladenposition hat sich geändert.', 0);
                             $this->UpdateBlindSlider();
                         }
                     }
@@ -152,6 +152,11 @@ trait KRS_messageSink
     {
         // Unregister first
         $this->UnregisterMessages();
+        $instanceActive = $this->ReadPropertyBoolean('InstanceActive');
+        if (!$instanceActive) {
+            $this->SendDebug(__FUNCTION__, 'Abbruch, die Instanz ist inaktiv!', 0);
+            return;
+        }
         // Sunrise
         $sunrise = json_decode($this->ReadPropertyString('Sunrise'), true)[0];
         if (!empty($sunrise)) {
