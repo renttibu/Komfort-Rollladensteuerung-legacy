@@ -159,7 +159,8 @@ trait KRS_moveBlind
     {
         $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
         $this->DeactivateBlindModeTimer();
-        $operationalAction = json_decode($this->ReadPropertyString('Timer'), true)[0]['OperationalAction'];
+        $settings = json_decode($this->ReadPropertyString('Timer'), true)[0];
+        $operationalAction = intval($settings['OperationalAction']);
         switch ($operationalAction) {
             // None
             case 0:
@@ -178,6 +179,13 @@ trait KRS_moveBlind
                 $setpointPosition = intval($this->GetValue('SetpointPosition'));
                 $this->SendDebug(__FUNCTION__, 'Aktion: Soll-Position, ' . $setpointPosition . '%', 0);
                 $this->MoveBlind($setpointPosition, 0, 0);
+                break;
+
+            // Defined position
+            case 3:
+                $definedPosition = intval($settings['DefinedPosition']);
+                $this->SendDebug(__FUNCTION__, 'Aktion: Definerte Position, ' . $definedPosition . '%', 0);
+                $this->MoveBlind($definedPosition, 0, 0);
                 break;
         }
     }

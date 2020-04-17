@@ -26,7 +26,7 @@
         },
         {
           "type": "Label",
-          "caption": "Version:\t\t\t2.00-10"
+          "caption": "Version:\t\t\t2.00-11"
         },
         {
           "type": "Label",
@@ -397,8 +397,23 @@
                       {
                         "caption": "Soll-Position",
                         "value": 2
+                      },
+                      {
+                        "caption": "Definierte Position",
+                        "value": 3
                       }
                     ]
+                  }
+                },
+                {
+                  "name": "DefinedPosition",
+                  "caption": "Definierte Position",
+                  "width": "190px",
+                  "edit": {
+                    "type": "NumberSpinner",
+                    "suffix": " %",
+                    "minimum": 0,
+                    "maximum": 100
                   }
                 }
               ]
