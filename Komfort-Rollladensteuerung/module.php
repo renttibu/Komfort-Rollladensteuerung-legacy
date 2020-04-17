@@ -12,7 +12,7 @@
  * @license     CC BY-NC-SA 4.0
  *              https://creativecommons.org/licenses/by-nc-sa/4.0/
  *
- * @version     2.00-9
+ * @version     2.00-10
  * @date        2020-04-16, 18:00, 1587056400
  * @review      2020-04-16, 18:00
  *
@@ -343,7 +343,7 @@ class KomfortRollladensteuerung extends IPSModule
         $this->RegisterPropertyBoolean('EnableBlindMode', true);
         $this->RegisterPropertyString('CloseBlind', '[{"LabelCloseBlind":"","Position":0,"UpdateSetpointPosition":false,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0}]');
         $this->RegisterPropertyBoolean('EnableStopFunction', true);
-        $this->RegisterPropertyString('Timer', '[{"LabelTimer":"","UseSettings":true,"Position":50,"UpdateSetpointPosition":false,"Duration":30,"DurationUnit":1,"OperationalAction":2,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0}]');
+        $this->RegisterPropertyString('Timer', '[{"LabelTimer":"","UseSettings":true,"Position":50,"UpdateSetpointPosition":false,"Duration":30,"DurationUnit":1,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0,"LabelOperationalAction":"","OperationalAction":2}]');
         $this->RegisterPropertyString('OpenBlind', '[{"LabelOpenBlind":"","Position":100,"UpdateSetpointPosition":false,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0}]');
         $this->RegisterPropertyBoolean('EnableBlindSlider', true);
         $this->RegisterPropertyBoolean('BlindSliderUpdateSetpointPosition', false);

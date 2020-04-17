@@ -26,7 +26,7 @@
         },
         {
           "type": "Label",
-          "caption": "Version:\t\t\t2.00-9"
+          "caption": "Version:\t\t\t2.00-10"
         },
         {
           "type": "Label",
@@ -296,28 +296,6 @@
                   }
                 },
                 {
-                  "name": "OperationalAction",
-                  "caption": "Ablaufaktion",
-                  "width": "170px",
-                  "edit": {
-                    "type": "Select",
-                    "options": [
-                      {
-                        "caption": "Keine",
-                        "value": 0
-                      },
-                      {
-                        "caption": "Letzte Position",
-                        "value": 1
-                      },
-                      {
-                        "caption": "Soll-Position",
-                        "value": 2
-                      }
-                    ]
-                  }
-                },
-                {
                   "name": "LabelSwitchingConditions",
                   "caption": "\nSchaltbedingungen:",
                   "width": "150px",
@@ -387,6 +365,37 @@
                       },
                       {
                         "caption": "An",
+                        "value": 2
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "LabelOperationalAction",
+                  "caption": "\nAblaufaktion:",
+                  "width": "150px",
+                  "visible": false,
+                  "edit": {
+                    "type": "Label"
+                  }
+                },
+                {
+                  "name": "OperationalAction",
+                  "caption": "Ablaufaktion",
+                  "width": "170px",
+                  "edit": {
+                    "type": "Select",
+                    "options": [
+                      {
+                        "caption": "Keine",
+                        "value": 0
+                      },
+                      {
+                        "caption": "Letzte Position",
+                        "value": 1
+                      },
+                      {
+                        "caption": "Soll-Position",
                         "value": 2
                       }
                     ]
