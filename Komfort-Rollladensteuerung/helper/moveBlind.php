@@ -159,8 +159,8 @@ trait KRS_moveBlind
     {
         $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
         $this->DeactivateBlindModeTimer();
-        $originPosition = json_decode($this->ReadPropertyString('Timer'), true)[0]['OriginPosition'];
-        switch ($originPosition) {
+        $operationalAction = json_decode($this->ReadPropertyString('Timer'), true)[0]['OperationalAction'];
+        switch ($operationalAction) {
             // None
             case 0:
                 $this->SendDebug(__FUNCTION__, 'Aktion: Keine', 0);
