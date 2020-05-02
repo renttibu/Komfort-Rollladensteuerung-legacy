@@ -22,57 +22,69 @@ trait KRS_switchingTime
             // Switching time one
             case 1:
                 $switchingTimeName = 'Schaltzeit 1';
-                $settings = json_decode($this->ReadPropertyString('SwitchingTimeOne'), true)[0];
+                $settings = json_decode($this->ReadPropertyString('SwitchingTimeOneActions'), true);
                 break;
 
             // Switching time two
             case 2:
                 $switchingTimeName = 'Schaltzeit 2';
-                $settings = json_decode($this->ReadPropertyString('SwitchingTimeTwo'), true)[0];
+                $settings = json_decode($this->ReadPropertyString('SwitchingTimeTwoActions'), true);
                 break;
 
             // Switching time three
             case 3:
                 $switchingTimeName = 'Schaltzeit 3';
-                $settings = json_decode($this->ReadPropertyString('SwitchingTimeThree'), true)[0];
+                $settings = json_decode($this->ReadPropertyString('SwitchingTimeThreeActions'), true);
                 break;
 
             // Switching time four
             case 4:
                 $switchingTimeName = 'Schaltzeit 4';
-                $settings = json_decode($this->ReadPropertyString('SwitchingTimeFour'), true)[0];
+                $settings = json_decode($this->ReadPropertyString('SwitchingTimeFourActions'), true);
                 break;
 
         }
         if (isset($settings) && isset($switchingTimeName)) {
-            if (!$settings['UseSettings']) {
-                $this->SendDebug(__FUNCTION__, 'Abbruch, die Variable ' . $switchingTimeName . ' ist deaktiviert!', 0);
+            $action = false;
+            foreach ($settings as $setting) {
+                if ($setting['UseSettings']) {
+                    $action = true;
+                }
+            }
+            if (!$action) {
+                $this->SendDebug(__FUNCTION__, 'Abbruch, die ' . $switchingTimeName . ' hat keine aktivierte Aktion!', 0);
                 return;
             }
-            $this->SendDebug(__FUNCTION__, 'Die ' . $switchingTimeName . ' wird ausgeführt!', 0);
-            // Check conditions
-            $conditions = [
-                ['type' => 0, 'condition' => ['Position' => $settings['Position'], 'CheckPositionDifference' => $settings['CheckPositionDifference']]],
-                ['type' => 1, 'condition' => ['Position' => $settings['Position'], 'CheckLockoutProtection' => $settings['CheckLockoutProtection']]],
-                ['type' => 2, 'condition' => $settings['CheckAutomaticMode']],
-                ['type' => 3, 'condition' => $settings['CheckSleepMode']],
-                ['type' => 4, 'condition' => $settings['CheckBlindMode']],
-                ['type' => 5, 'condition' => $settings['CheckIsDay']],
-                ['type' => 6, 'condition' => $settings['CheckTwilight']],
-                ['type' => 7, 'condition' => $settings['CheckPresence']]];
-            $checkConditions = $this->CheckConditions(json_encode($conditions));
-            if (!$checkConditions) {
+            foreach ($settings as $setting) {
+                $this->SendDebug(__FUNCTION__, 'Die ' . $switchingTimeName . ' wird ausgeführt!', 0);
+                // Check conditions
+                $conditions = [
+                    ['type' => 0, 'condition' => ['Position' => $setting['Position'], 'CheckPositionDifference' => $setting['CheckPositionDifference']]],
+                    ['type' => 1, 'condition' => ['Position' => $setting['Position'], 'CheckLockoutProtection' => $setting['CheckLockoutProtection']]],
+                    ['type' => 2, 'condition' => $setting['CheckAutomaticMode']],
+                    ['type' => 3, 'condition' => $setting['CheckSleepMode']],
+                    ['type' => 4, 'condition' => $setting['CheckBlindMode']],
+                    ['type' => 5, 'condition' => $setting['CheckIsDay']],
+                    ['type' => 6, 'condition' => $setting['CheckTwilight']],
+                    ['type' => 7, 'condition' => $setting['CheckPresence']],
+                    ['type' => 8, 'condition' => $setting['CheckDoorWindowStatus']]];
+                $checkConditions = $this->CheckConditions(json_encode($conditions));
+                if (!$checkConditions) {
+                    $this->SetSwitchingTimes();
+                    continue;
+                }
+                // Trigger action
+                $position = $setting['Position'];
+                if ($setting['UpdateSetpointPosition']) {
+                    $this->SetValue('SetpointPosition', $position);
+                }
+                if ($setting['UpdateLastPosition']) {
+                    $this->SetValue('LastPosition', $position);
+                }
+                $this->TriggerExecutionDelay(intval($setting['ExecutionDelay']));
+                $this->MoveBlind($position, 0, 0);
                 $this->SetSwitchingTimes();
-                return;
             }
-            // Trigger action
-            $position = $settings['Position'];
-            if ($settings['UpdateSetpointPosition']) {
-                $this->SetValue('SetpointPosition', $position);
-            }
-            $this->TriggerExecutionDelay(intval($settings['ExecutionDelay']));
-            $this->MoveBlind($position, 0, 0);
-            $this->SetSwitchingTimes();
         }
     }
 
@@ -96,46 +108,62 @@ trait KRS_switchingTime
     {
         // Switching time one
         $interval = 0;
-        $switchingTime = json_decode($this->ReadPropertyString('SwitchingTimeOne'));
-        if (!empty($switchingTime)) {
-            foreach ($switchingTime as $parameter) {
-                if ($parameter->UseSettings) {
-                    $interval = $this->GetSwitchingTimerInterval('SwitchingTimeOne');
+        $setTimer = false;
+        $switchingTimeActions = json_decode($this->ReadPropertyString('SwitchingTimeOneActions'));
+        if (!empty($switchingTimeActions)) {
+            foreach ($switchingTimeActions as $switchingTimeAction) {
+                if ($switchingTimeAction->UseSettings) {
+                    $setTimer = true;
                 }
             }
+        }
+        if ($setTimer) {
+            $interval = $this->GetSwitchingTimerInterval('SwitchingTimeOne');
         }
         $this->SetTimerInterval('SwitchingTimeOne', $interval);
         // Switching time two
         $interval = 0;
-        $switchingTime = json_decode($this->ReadPropertyString('SwitchingTimeTwo'));
-        if (!empty($switchingTime)) {
-            foreach ($switchingTime as $parameter) {
-                if ($parameter->UseSettings) {
-                    $interval = $this->GetSwitchingTimerInterval('SwitchingTimeTwo');
+        $setTimer = false;
+        $switchingTimeActions = json_decode($this->ReadPropertyString('SwitchingTimeTwoActions'));
+        if (!empty($switchingTimeActions)) {
+            foreach ($switchingTimeActions as $switchingTimeAction) {
+                if ($switchingTimeAction->UseSettings) {
+                    $setTimer = true;
                 }
             }
+        }
+        if ($setTimer) {
+            $interval = $this->GetSwitchingTimerInterval('SwitchingTimeTwo');
         }
         $this->SetTimerInterval('SwitchingTimeTwo', $interval);
         // Switching time three
         $interval = 0;
-        $switchingTime = json_decode($this->ReadPropertyString('SwitchingTimeThree'));
-        if (!empty($switchingTime)) {
-            foreach ($switchingTime as $parameter) {
-                if ($parameter->UseSettings) {
-                    $interval = $this->GetSwitchingTimerInterval('SwitchingTimeThree');
+        $setTimer = false;
+        $switchingTimeActions = json_decode($this->ReadPropertyString('SwitchingTimeThreeActions'));
+        if (!empty($switchingTimeActions)) {
+            foreach ($switchingTimeActions as $switchingTimeAction) {
+                if ($switchingTimeAction->UseSettings) {
+                    $setTimer = true;
                 }
             }
+        }
+        if ($setTimer) {
+            $interval = $this->GetSwitchingTimerInterval('SwitchingTimeThree');
         }
         $this->SetTimerInterval('SwitchingTimeThree', $interval);
         // Switching time four
         $interval = 0;
-        $switchingTime = json_decode($this->ReadPropertyString('SwitchingTimeFour'));
-        if (!empty($switchingTime)) {
-            foreach ($switchingTime as $parameter) {
-                if ($parameter->UseSettings) {
-                    $interval = $this->GetSwitchingTimerInterval('SwitchingTimeFour');
+        $setTimer = false;
+        $switchingTimeActions = json_decode($this->ReadPropertyString('SwitchingTimeFourActions'));
+        if (!empty($switchingTimeActions)) {
+            foreach ($switchingTimeActions as $switchingTimeAction) {
+                if ($switchingTimeAction->UseSettings) {
+                    $setTimer = true;
                 }
             }
+        }
+        if ($setTimer) {
+            $interval = $this->GetSwitchingTimerInterval('SwitchingTimeFour');
         }
         $this->SetTimerInterval('SwitchingTimeFour', $interval);
         // Set info for next switching time
@@ -150,23 +178,18 @@ trait KRS_switchingTime
      */
     private function GetSwitchingTimerInterval(string $TimerName): int
     {
-        $interval = 0;
-        $switchingTime = json_decode($this->ReadPropertyString($TimerName), true);
-        if (!empty($switchingTime)) {
-            $now = time();
-            $timer = json_decode($switchingTime[0]['SwitchingTime']);
-            $hour = $timer->hour;
-            $minute = $timer->minute;
-            $second = $timer->second;
-            $definedTime = $hour . ':' . $minute . ':' . $second;
-            if (time() >= strtotime($definedTime)) {
-                $timestamp = mktime($hour, $minute, $second, (int) date('n'), (int) date('j') + 1, (int) date('Y'));
-            } else {
-                $timestamp = mktime($hour, $minute, $second, (int) date('n'), (int) date('j'), (int) date('Y'));
-            }
-            $interval = ($timestamp - $now) * 1000;
+        $timer = json_decode($this->ReadPropertyString($TimerName));
+        $now = time();
+        $hour = $timer->hour;
+        $minute = $timer->minute;
+        $second = $timer->second;
+        $definedTime = $hour . ':' . $minute . ':' . $second;
+        if (time() >= strtotime($definedTime)) {
+            $timestamp = mktime($hour, $minute, $second, (int) date('n'), (int) date('j') + 1, (int) date('Y'));
+        } else {
+            $timestamp = mktime($hour, $minute, $second, (int) date('n'), (int) date('j'), (int) date('Y'));
         }
-        return $interval;
+        return ($timestamp - $now) * 1000;
     }
 
     /**
@@ -176,31 +199,39 @@ trait KRS_switchingTime
     {
         $timer = [];
         // Switching time one
-        $switchingTime = json_decode($this->ReadPropertyString('SwitchingTimeOne'), true);
-        if (!empty($switchingTime)) {
-            if ($switchingTime[0]['UseSettings']) {
-                $timer[] = ['name' => 'SwitchingTimeOne', 'interval' => $this->GetSwitchingTimerInterval('SwitchingTimeOne')];
+        $switchingTimeActions = json_decode($this->ReadPropertyString('SwitchingTimeOneActions'), true);
+        if (!empty($switchingTimeActions)) {
+            foreach ($switchingTimeActions as $switchingTimeAction) {
+                if ($switchingTimeAction['UseSettings']) {
+                    $timer[] = ['name' => 'SwitchingTimeOne', 'interval' => $this->GetSwitchingTimerInterval('SwitchingTimeOne')];
+                }
             }
         }
         // Switching time two
-        $switchingTime = json_decode($this->ReadPropertyString('SwitchingTimeTwo'), true);
-        if (!empty($switchingTime)) {
-            if ($switchingTime[0]['UseSettings']) {
-                $timer[] = ['name' => 'SwitchingTimeTwo', 'interval' => $this->GetSwitchingTimerInterval('SwitchingTimeTwo')];
+        $switchingTimeActions = json_decode($this->ReadPropertyString('SwitchingTimeTwoActions'), true);
+        if (!empty($switchingTimeActions)) {
+            foreach ($switchingTimeActions as $switchingTimeAction) {
+                if ($switchingTimeAction['UseSettings']) {
+                    $timer[] = ['name' => 'SwitchingTimeTwo', 'interval' => $this->GetSwitchingTimerInterval('SwitchingTimeTwo')];
+                }
             }
         }
         // Switching time three
-        $switchingTime = json_decode($this->ReadPropertyString('SwitchingTimeThree'), true);
-        if (!empty($switchingTime)) {
-            if ($switchingTime[0]['UseSettings']) {
-                $timer[] = ['name' => 'SwitchingTimeThree', 'interval' => $this->GetSwitchingTimerInterval('SwitchingTimeThree')];
+        $switchingTimeActions = json_decode($this->ReadPropertyString('SwitchingTimeThreeActions'), true);
+        if (!empty($switchingTimeActions)) {
+            foreach ($switchingTimeActions as $switchingTimeAction) {
+                if ($switchingTimeAction['UseSettings']) {
+                    $timer[] = ['name' => 'SwitchingTimeThree', 'interval' => $this->GetSwitchingTimerInterval('SwitchingTimeThree')];
+                }
             }
         }
         // Switching time four
-        $switchingTime = json_decode($this->ReadPropertyString('SwitchingTimeFour'), true);
-        if (!empty($switchingTime)) {
-            if ($switchingTime[0]['UseSettings']) {
-                $timer[] = ['name' => 'SwitchingTimeFour', 'interval' => $this->GetSwitchingTimerInterval('SwitchingTimeFour')];
+        $switchingTimeActions = json_decode($this->ReadPropertyString('SwitchingTimeFourActions'), true);
+        if (!empty($switchingTimeActions)) {
+            foreach ($switchingTimeActions as $switchingTimeAction) {
+                if ($switchingTimeAction['UseSettings']) {
+                    $timer[] = ['name' => 'SwitchingTimeFour', 'interval' => $this->GetSwitchingTimerInterval('SwitchingTimeFour')];
+                }
             }
         }
         if (!empty($timer)) {

@@ -17,6 +17,7 @@ trait KRS_checkConditions
      * 5    = is day
      * 6    = twilight
      * 7    = presence
+     * 8    = door and windows
      *
      * @return bool
      * false    = mismatch
@@ -79,6 +80,12 @@ trait KRS_checkConditions
                         $results[$condition['type']] = $checkPresence;
                         break;
 
+                    // Door and window status
+                    case 8:
+                        $checkDoorWindows = $this->CheckDoorWindowCondition($condition['condition']);
+                        $results[$condition['type']] = $checkDoorWindows;
+                        break;
+
                 }
             }
             if (in_array(false, $results)) {
@@ -102,14 +109,24 @@ trait KRS_checkConditions
         $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
         $result = true;
         $checkPositionDifference = $Conditions['CheckPositionDifference'];
+        $this->SendDebug(__FUNCTION__, 'Positionsunterschied: ' . $checkPositionDifference . '%.', 0);
         $newBlindPosition = $Conditions['Position'];
+        $this->SendDebug(__FUNCTION__, 'Neue Position: ' . $newBlindPosition . '%.', 0);
         if ($checkPositionDifference > 0) { // 0 = don't check for position difference, > 0 check position difference
-            $actualDifference = abs($this->GetActualBlindPosition() - $newBlindPosition);
-            $this->SendDebug(__FUNCTION__, 'Positionsunterschied: ' . $actualDifference . '%.', 0);
-            if ($actualDifference <= $checkPositionDifference) {
-                $this->SendDebug(__FUNCTION__, 'Abbruch, der Positionsunterschied ist zu gering!', 0);
-                $result = false;
+            $actualBlindPosition = $this->GetActualBlindPosition();
+            $this->SendDebug(__FUNCTION__, 'Aktuelle Position: ' . $actualBlindPosition . '%.', 0);
+            $range = ($actualBlindPosition * $checkPositionDifference) / 100;
+            $minimalPosition = $actualBlindPosition - $range;
+            $this->SendDebug(__FUNCTION__, 'Minimale Position: ' . $minimalPosition . '%.', 0);
+            $maximalPosition = $actualBlindPosition + $range;
+            $this->SendDebug(__FUNCTION__, 'Maximale Position: ' . $maximalPosition . '%.', 0);
+            if ($actualBlindPosition > 0) {
+                if ($newBlindPosition < $minimalPosition || $newBlindPosition > $maximalPosition) {
+                    $this->SendDebug(__FUNCTION__, 'Abbruch, der Positionsunterschied ist zu groß!', 0);
+                    $result = false;
+                }
             }
+            $this->SendDebug(__FUNCTION__, 'Neue Position: ' . $newBlindPosition . '% entspricht der Bedingung.', 0);
         }
         return $result;
     }
@@ -444,6 +461,46 @@ trait KRS_checkConditions
                         $this->SendDebug(__FUNCTION__, 'Abbruch, aktueller Status: Abwesenheit!', 0);
                         $result = false;
                     }
+                }
+                break;
+
+        }
+        return $result;
+    }
+
+    /**
+     * Checks the door and window condition.
+     *
+     * @param int $Condition
+     * 0    = none
+     * 1    = doors and windows must be closed
+     * 2    = doors and windows must be opened
+     *
+     * @return bool
+     * false    = mismatch
+     * true     = condition is valid
+     */
+    private function CheckDoorWindowCondition(int $Condition): bool
+    {
+        $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
+        $result = true;
+        $doorWindowStatus = boolval($this->GetValue('DoorWindowStatus'));
+        switch ($Condition) {
+            // Must be closed
+            case 1:
+                if ($doorWindowStatus) { // Opened
+                    $this->SendDebug(__FUNCTION__, 'Bedingung: 1 = Tür- / Fensterstatus: Geschlossen', 0);
+                    $this->SendDebug(__FUNCTION__, 'Abbruch, aktueller Tür- / Fensterstatus: Geöffnet!', 0);
+                    $result = false;
+                }
+                break;
+
+            // Must be opened
+            case 2:
+                if (!$doorWindowStatus) { // Closed
+                    $this->SendDebug(__FUNCTION__, 'Bedingung: 2 = Tür- / Fensterstatus: Geöffnet', 0);
+                    $this->SendDebug(__FUNCTION__, 'Abbruch, aktueller Tür- / Fensterstatus: Geschlossen!', 0);
+                    $result = false;
                 }
                 break;
 

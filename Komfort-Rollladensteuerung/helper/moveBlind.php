@@ -19,13 +19,10 @@ trait KRS_moveBlind
     public function MoveBlind(int $Position, int $Duration = 0, int $DurationUnit = 0): bool
     {
         $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
-        $result = false;
-        $instanceActive = $this->ReadPropertyBoolean('InstanceActive');
-        if (!$instanceActive) {
-            $this->SendDebug(__FUNCTION__, 'Abbruch, die Instanz ist inaktiv!', 0);
-            $this->LogMessage('ID ' . $this->InstanceID . ', ' . __FUNCTION__ . ' Abbruch, die Instanz ist inaktiv!', KL_WARNING);
-            return $result;
+        if (!$this->CheckMaintenanceMode()) {
+            return false;
         }
+        $result = false;
         $id = $this->ReadPropertyInteger('ActuatorControl');
         if ($id == 0 || !@IPS_ObjectExists($id)) {
             $this->SendDebug(__FUNCTION__, 'Abbruch, es ist kein Rollladenaktor vorhanden!', 0);
@@ -73,9 +70,6 @@ trait KRS_moveBlind
         if (isset($mode)) {
             $this->SetValue('BlindMode', $mode);
             $this->SetValue('BlindSlider', $Position);
-            if ($Duration == 0) {
-                $this->SetValue('LastPosition', $Position);
-            }
             $profile = 'KRS.' . $this->InstanceID . '.PositionPresets';
             $associations = IPS_GetVariableProfile($profile)['Associations'];
             if (!empty($associations)) {

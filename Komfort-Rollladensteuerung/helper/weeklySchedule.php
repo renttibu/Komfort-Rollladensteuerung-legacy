@@ -51,12 +51,14 @@ trait KRS_weeklySchedule
             return;
         }
         $actionID = $this->DetermineAction();
+        $variableName = 'WeeklySchedule';
         switch ($actionID) {
             // Close
             case 1:
-                $settings = json_decode($this->ReadPropertyString('WeeklyScheduleActionOne'), true)[0];
-                if (!$settings['UseSettings']) {
-                    $this->SendDebug(__FUNCTION__, 'Abbruch, Wochenplanaktion: 1 = Schließen ist deaktiviert!', 0);
+                $actionName = 'WeeklyScheduleActionOne';
+                $action = $this->CheckAction($variableName, $actionName);
+                if (!$action) {
+                    $this->SendDebug(__FUNCTION__, 'Abbruch, Wochenplanaktion: 1 = Schließen hat keine aktivierten Aktionen!', 0);
                     return;
                 }
                 $this->SendDebug(__FUNCTION__, 'Wochenplanaktion: 1 = Schließen', 0);
@@ -64,9 +66,10 @@ trait KRS_weeklySchedule
 
             // Open
             case 2:
-                $settings = json_decode($this->ReadPropertyString('WeeklyScheduleActionTwo'), true)[0];
-                if (!$settings['UseSettings']) {
-                    $this->SendDebug(__FUNCTION__, 'Abbruch, Wochenplanaktion: 2 = Öffnen ist deaktiviert!', 0);
+                $actionName = 'WeeklyScheduleActionTwo';
+                $action = $this->CheckAction($variableName, $actionName);
+                if (!$action) {
+                    $this->SendDebug(__FUNCTION__, 'Abbruch, Wochenplanaktion: 2 = Öffnen hat keine aktivierten Aktionen!', 0);
                     return;
                 }
                 $this->SendDebug(__FUNCTION__, 'Wochenplanaktion: 2 = Öffnen', 0);
@@ -74,36 +77,46 @@ trait KRS_weeklySchedule
 
             // Shading
             case 3:
-                $settings = json_decode($this->ReadPropertyString('WeeklyScheduleActionThree'), true)[0];
-                if (!$settings['UseSettings']) {
-                    $this->SendDebug(__FUNCTION__, 'Abbruch, Wochenplanaktion: 3 = Beschatten ist deaktiviert!', 0);
+                $actionName = 'WeeklyScheduleActionThree';
+                $action = $this->CheckAction($variableName, $actionName);
+                if (!$action) {
+                    $this->SendDebug(__FUNCTION__, 'Abbruch, Wochenplanaktion: 3 = Beschatten hat keine aktivierten Aktionen!', 0);
                     return;
                 }
                 $this->SendDebug(__FUNCTION__, 'Wochenplanaktion: 3 = Beschatten', 0);
                 break;
         }
-        if (isset($settings)) {
-            // Check conditions
-            $conditions = [
-                ['type' => 0, 'condition' => ['Position' => $settings['Position'], 'CheckPositionDifference' => $settings['CheckPositionDifference']]],
-                ['type' => 1, 'condition' => ['Position' => $settings['Position'], 'CheckLockoutProtection' => $settings['CheckLockoutProtection']]],
-                ['type' => 2, 'condition' => $settings['CheckAutomaticMode']],
-                ['type' => 3, 'condition' => $settings['CheckSleepMode']],
-                ['type' => 4, 'condition' => $settings['CheckBlindMode']],
-                ['type' => 5, 'condition' => $settings['CheckIsDay']],
-                ['type' => 6, 'condition' => $settings['CheckTwilight']],
-                ['type' => 7, 'condition' => $settings['CheckPresence']]];
-            $checkConditions = $this->CheckConditions(json_encode($conditions));
-            if (!$checkConditions) {
-                return;
+        if (isset($actionName)) {
+            $settings = json_decode($this->ReadPropertyString($actionName), true);
+            if (!empty($settings)) {
+                foreach ($settings as $setting) {
+                    // Check conditions
+                    $conditions = [
+                        ['type' => 0, 'condition' => ['Position' => $setting['Position'], 'CheckPositionDifference' => $setting['CheckPositionDifference']]],
+                        ['type' => 1, 'condition' => ['Position' => $setting['Position'], 'CheckLockoutProtection' => $setting['CheckLockoutProtection']]],
+                        ['type' => 2, 'condition' => $setting['CheckAutomaticMode']],
+                        ['type' => 3, 'condition' => $setting['CheckSleepMode']],
+                        ['type' => 4, 'condition' => $setting['CheckBlindMode']],
+                        ['type' => 5, 'condition' => $setting['CheckIsDay']],
+                        ['type' => 6, 'condition' => $setting['CheckTwilight']],
+                        ['type' => 7, 'condition' => $setting['CheckPresence']],
+                        ['type' => 8, 'condition' => $setting['CheckDoorWindowStatus']]];
+                    $checkConditions = $this->CheckConditions(json_encode($conditions));
+                    if (!$checkConditions) {
+                        continue;
+                    }
+                    // Trigger action
+                    $position = $setting['Position'];
+                    if ($setting['UpdateSetpointPosition']) {
+                        $this->SetValue('SetpointPosition', $position);
+                    }
+                    if ($setting['UpdateLastPosition']) {
+                        $this->SetValue('LastPosition', $position);
+                    }
+                    $this->TriggerExecutionDelay(intval($setting['ExecutionDelay']));
+                    $this->MoveBlind($position, 0, 0);
+                }
             }
-            // Trigger action
-            $position = $settings['Position'];
-            if ($settings['UpdateSetpointPosition']) {
-                $this->SetValue('SetpointPosition', $position);
-            }
-            $this->TriggerExecutionDelay(intval($settings['ExecutionDelay']));
-            $this->MoveBlind($position, 0, 0);
         }
     }
 

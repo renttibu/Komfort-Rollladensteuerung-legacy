@@ -7,10 +7,15 @@ trait KRS_messageSink
 {
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
     {
-        $this->SendDebug(__FUNCTION__, $TimeStamp . ', SenderID: ' . $SenderID . ', Message: ' . $Message . ', Data: ' . print_r($Data, true), 0);
-        if (!empty($Data)) {
-            foreach ($Data as $key => $value) {
-                $this->SendDebug(__FUNCTION__, 'Data[' . $key . '] = ' . json_encode($value), 0);
+        if (!$this->CheckMaintenanceMode()) {
+            return;
+        }
+        if ($this->ReadPropertyBoolean('UseMessageSinkDebug')) {
+            $this->SendDebug(__FUNCTION__, $TimeStamp . ', SenderID: ' . $SenderID . ', Message: ' . $Message . ', Data: ' . print_r($Data, true), 0);
+            if (!empty($Data)) {
+                foreach ($Data as $key => $value) {
+                    $this->SendDebug(__FUNCTION__, 'Data[' . $key . '] = ' . json_encode($value), 0);
+                }
             }
         }
         switch ($Message) {
@@ -23,12 +28,14 @@ trait KRS_messageSink
             // $Data[2] = last value
             case VM_UPDATE:
                 // Actuator blind position
-                $id = $this->ReadPropertyInteger('ActuatorBlindPosition');
-                if ($id != 0 && @IPS_ObjectExists($id)) {
-                    if ($SenderID == $id) {
-                        if ($Data[1]) {
-                            $this->SendDebug(__FUNCTION__, 'Die Rollladenposition hat sich geändert.', 0);
-                            $this->UpdateBlindSlider();
+                if ($this->ReadPropertyBoolean('ActuatorUpdateBlindPosition')) {
+                    $id = $this->ReadPropertyInteger('ActuatorBlindPosition');
+                    if ($id != 0 && @IPS_ObjectExists($id)) {
+                        if ($SenderID == $id) {
+                            if ($Data[1]) {
+                                $this->SendDebug(__FUNCTION__, 'Die Rollladenposition hat sich geändert.', 0);
+                                $this->UpdateBlindSlider();
+                            }
                         }
                     }
                 }
@@ -42,32 +49,22 @@ trait KRS_messageSink
                     }
                 }
                 // Sunrise
-                $sunrise = json_decode($this->ReadPropertyString('Sunrise'), true)[0];
-                if (!empty($sunrise)) {
-                    if ($sunrise['UseSettings']) {
-                        $id = $sunrise['ID'];
-                        if ($id != 0 && @IPS_ObjectExists($id)) {
-                            if ($SenderID == $id) {
-                                if ($Data[1]) {
-                                    $scriptText = 'KRS_ExecuteSunriseSunsetAction(' . $this->InstanceID . ', ' . $SenderID . ', 0);';
-                                    IPS_RunScriptText($scriptText);
-                                }
-                            }
+                $sunrise = $this->ReadPropertyInteger('Sunrise');
+                if ($sunrise != 0 && @IPS_ObjectExists($sunrise)) {
+                    if ($SenderID == $sunrise) {
+                        if ($Data[1]) {
+                            $scriptText = 'KRS_ExecuteSunriseSunsetAction(' . $this->InstanceID . ', ' . $SenderID . ', 0);';
+                            IPS_RunScriptText($scriptText);
                         }
                     }
                 }
                 // Sunset
-                $sunset = json_decode($this->ReadPropertyString('Sunset'), true)[0];
-                if (!empty($sunset)) {
-                    if ($sunset['UseSettings']) {
-                        $id = $sunset['ID'];
-                        if ($id != 0 && @IPS_ObjectExists($id)) {
-                            if ($SenderID == $id) {
-                                if ($Data[1]) {
-                                    $scriptText = 'KRS_ExecuteSunriseSunsetAction(' . $this->InstanceID . ', ' . $SenderID . ', 1);';
-                                    IPS_RunScriptText($scriptText);
-                                }
-                            }
+                $sunset = $this->ReadPropertyInteger('Sunset');
+                if ($sunset != 0 && @IPS_ObjectExists($sunset)) {
+                    if ($SenderID == $sunset) {
+                        if ($Data[1]) {
+                            $scriptText = 'KRS_ExecuteSunriseSunsetAction(' . $this->InstanceID . ', ' . $SenderID . ', 1);';
+                            IPS_RunScriptText($scriptText);
                         }
                     }
                 }
@@ -152,25 +149,12 @@ trait KRS_messageSink
     {
         // Unregister first
         $this->UnregisterMessages();
-        $instanceActive = $this->ReadPropertyBoolean('InstanceActive');
-        if (!$instanceActive) {
-            $this->SendDebug(__FUNCTION__, 'Abbruch, die Instanz ist inaktiv!', 0);
-            return;
-        }
-        // Sunrise
-        $sunrise = json_decode($this->ReadPropertyString('Sunrise'), true)[0];
-        if (!empty($sunrise)) {
-            if ($sunrise['UseSettings']) {
-                $id = $sunrise['ID'];
-                if ($id != 0 && @IPS_ObjectExists($id)) {
-                    $this->RegisterMessage($id, VM_UPDATE);
-                }
-            }
-        }
         // Actuator blind position
-        $id = $this->ReadPropertyInteger('ActuatorBlindPosition');
-        if ($id != 0 && IPS_ObjectExists($id)) {
-            $this->RegisterMessage($id, VM_UPDATE);
+        if ($this->ReadPropertyBoolean('ActuatorUpdateBlindPosition')) {
+            $id = $this->ReadPropertyInteger('ActuatorBlindPosition');
+            if ($id != 0 && IPS_ObjectExists($id)) {
+                $this->RegisterMessage($id, VM_UPDATE);
+            }
         }
         // Door and window sensors
         $doorWindowSensors = json_decode($this->ReadPropertyString('DoorWindowSensors'));
@@ -185,15 +169,15 @@ trait KRS_messageSink
                 }
             }
         }
+        // Sunrise
+        $id = $this->ReadPropertyInteger('Sunrise');
+        if ($id != 0 && @IPS_ObjectExists($id)) {
+            $this->RegisterMessage($id, VM_UPDATE);
+        }
         // Sunset
-        $sunset = json_decode($this->ReadPropertyString('Sunset'), true)[0];
-        if (!empty($sunset)) {
-            if ($sunset['UseSettings']) {
-                $id = $sunset['ID'];
-                if ($id != 0 && @IPS_ObjectExists($id)) {
-                    $this->RegisterMessage($id, VM_UPDATE);
-                }
-            }
+        $id = $this->ReadPropertyInteger('Sunset');
+        if ($id != 0 && @IPS_ObjectExists($id)) {
+            $this->RegisterMessage($id, VM_UPDATE);
         }
         // Weekly schedule
         $id = $this->ReadPropertyInteger('WeeklySchedule');

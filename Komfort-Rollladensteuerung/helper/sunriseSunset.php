@@ -17,35 +17,47 @@ trait KRS_sunriseSunset
     {
         $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
         $modeName = 'Sonnenaufgang';
-        $settings = json_decode($this->ReadPropertyString('Sunrise'), true)[0];
+        $variableName = 'Sunrise';
+        $actionName = 'SunriseAction';
         if ($Mode == 1) {
             $modeName = 'Sonnenuntergang';
-            $settings = json_decode($this->ReadPropertyString('Sunset'), true)[0];
+            $variableName = 'Sunset';
+            $actionName = 'SunsetAction';
         }
         $this->SendDebug(__FUNCTION__, 'Die Variable ' . $VariableID . ' (' . $modeName . ') hat sich geändert!', 0);
-        if (!$settings['UseSettings']) {
-            $this->SendDebug(__FUNCTION__, 'Abbruch, die Variable ' . $modeName . ' ist deaktiviert!', 0);
+        $action = $this->CheckAction($variableName, $actionName);
+        if (!$action) {
+            $this->SendDebug(__FUNCTION__, 'Abbruch, die Variable ' . $modeName . ' hat keine aktivierten Aktionen!', 0);
             return;
         }
-        $conditions = [
-            ['type' => 0, 'condition' => ['Position' => $settings['Position'], 'CheckPositionDifference' => $settings['CheckPositionDifference']]],
-            ['type' => 1, 'condition' => ['Position' => $settings['Position'], 'CheckLockoutProtection' => $settings['CheckLockoutProtection']]],
-            ['type' => 2, 'condition' => $settings['CheckAutomaticMode']],
-            ['type' => 3, 'condition' => $settings['CheckSleepMode']],
-            ['type' => 4, 'condition' => $settings['CheckBlindMode']],
-            ['type' => 5, 'condition' => $settings['CheckIsDay']],
-            ['type' => 6, 'condition' => $settings['CheckTwilight']],
-            ['type' => 7, 'condition' => $settings['CheckPresence']]];
-        $checkConditions = $this->CheckConditions(json_encode($conditions));
-        if (!$checkConditions) {
-            return;
+        $settings = json_decode($this->ReadPropertyString($actionName), true);
+        if (!empty($settings)) {
+            foreach ($settings as $setting) {
+                $conditions = [
+                    ['type' => 0, 'condition' => ['Position' => $setting['Position'], 'CheckPositionDifference' => $setting['CheckPositionDifference']]],
+                    ['type' => 1, 'condition' => ['Position' => $setting['Position'], 'CheckLockoutProtection' => $setting['CheckLockoutProtection']]],
+                    ['type' => 2, 'condition' => $setting['CheckAutomaticMode']],
+                    ['type' => 3, 'condition' => $setting['CheckSleepMode']],
+                    ['type' => 4, 'condition' => $setting['CheckBlindMode']],
+                    ['type' => 5, 'condition' => $setting['CheckIsDay']],
+                    ['type' => 6, 'condition' => $setting['CheckTwilight']],
+                    ['type' => 7, 'condition' => $setting['CheckPresence']],
+                    ['type' => 8, 'condition' => $setting['CheckDoorWindowStatus']]];
+                $checkConditions = $this->CheckConditions(json_encode($conditions));
+                if (!$checkConditions) {
+                    continue;
+                }
+                // Trigger action
+                $position = $setting['Position'];
+                if ($setting['UpdateSetpointPosition']) {
+                    $this->SetValue('SetpointPosition', $position);
+                }
+                if ($setting['UpdateLastPosition']) {
+                    $this->SetValue('LastPosition', $position);
+                }
+                $this->TriggerExecutionDelay(intval($setting['ExecutionDelay']));
+                $this->MoveBlind($position, 0, 0);
+            }
         }
-        // Trigger action
-        $position = $settings['Position'];
-        if ($settings['UpdateSetpointPosition']) {
-            $this->SetValue('SetpointPosition', $position);
-        }
-        $this->TriggerExecutionDelay(intval($settings['ExecutionDelay']));
-        $this->MoveBlind($position, 0, 0);
     }
 }

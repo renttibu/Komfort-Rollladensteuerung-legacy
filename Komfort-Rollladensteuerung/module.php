@@ -12,9 +12,9 @@
  * @license     CC BY-NC-SA 4.0
  *              https://creativecommons.org/licenses/by-nc-sa/4.0/
  *
- * @version     2.00-11
- * @date        2020-04-16, 18:00, 1587056400
- * @review      2020-04-16, 18:00
+ * @version     2.00-12
+ * @date        2020-05-02, 18:00, 1588438800
+ * @review      2020-05-02, 18:00
  *
  * @see         https://github.com/ubittner/Komfort-Rollladensteuerung
  *
@@ -99,8 +99,8 @@ class KomfortRollladensteuerung extends IPSModule
         $this->CheckDoorWindowSensors();
         // Update blind slider
         $this->UpdateBlindSlider();
-        // Check instance status
-        $this->CheckInstanceStatus();
+        // Check maintenance mode
+        $this->CheckMaintenanceMode();
     }
 
     public function Destroy()
@@ -264,47 +264,77 @@ class KomfortRollladensteuerung extends IPSModule
         switch ($Mode) {
             // Close
             case 0:
-                $settings = json_decode($this->ReadPropertyString('CloseBlind'), true)[0];
-                $position = intval($settings['Position']);
-                if (boolval($settings['UpdateSetpointPosition'])) {
-                    $this->SetValue('SetpointPosition', $position);
-                }
-                $this->MoveBlind($position, 0, 0);
+                $settings = json_decode($this->ReadPropertyString('CloseBlind'), true);
+                $action = true;
+                $mode = 0;
                 break;
 
             // Stop
             case 1:
+                $action = false;
                 $this->SetValue('BlindMode', 1);
+                $this->DeactivateBlindModeTimer();
                 $this->StopBlindMoving();
                 break;
 
             // Timer
             case 2:
-                $settings = json_decode($this->ReadPropertyString('Timer'), true)[0];
-                $position = intval($settings['Position']);
-                if (boolval($settings['UpdateSetpointPosition'])) {
-                    $this->SetValue('SetpointPosition', $position);
-                }
-                $duration = $settings['Duration'];
-                $durationUnit = $settings['DurationUnit'];
-                $this->MoveBlind($position, $duration, $durationUnit);
+                $settings = json_decode($this->ReadPropertyString('Timer'), true);
+                $action = true;
+                $mode = 2;
                 break;
 
             // Open
             case 3:
-                $settings = json_decode($this->ReadPropertyString('OpenBlind'), true)[0];
-                $position = intval($settings['Position']);
-                if (boolval($settings['UpdateSetpointPosition'])) {
-                    $this->SetValue('SetpointPosition', $position);
-                }
-                $this->MoveBlind($position, 0, 0);
+                $settings = json_decode($this->ReadPropertyString('OpenBlind'), true);
+                $action = true;
+                $mode = 3;
                 break;
 
+        }
+        // Trigger action
+        if (isset($action) && isset($mode) && $action) {
+            if (!empty($settings)) {
+                foreach ($settings as $setting) {
+                    if ($setting['UseSettings']) {
+                        $position = intval($setting['Position']);
+                        // Check conditions
+                        $conditions = [
+                            ['type' => 0, 'condition' => ['Position' => $position, 'CheckPositionDifference' => $setting['CheckPositionDifference']]],
+                            ['type' => 1, 'condition' => ['Position' => $position, 'CheckLockoutProtection' => $setting['CheckLockoutProtection']]],
+                            ['type' => 2, 'condition' => $setting['CheckAutomaticMode']],
+                            ['type' => 3, 'condition' => $setting['CheckSleepMode']],
+                            ['type' => 4, 'condition' => $setting['CheckBlindMode']],
+                            ['type' => 5, 'condition' => $setting['CheckIsDay']],
+                            ['type' => 6, 'condition' => $setting['CheckTwilight']],
+                            ['type' => 7, 'condition' => $setting['CheckPresence']],
+                            ['type' => 8, 'condition' => $setting['CheckDoorWindowStatus']]];
+                        $checkConditions = $this->CheckConditions(json_encode($conditions));
+                        if (!$checkConditions) {
+                            return;
+                        }
+                        $this->SetValue('BlindMode', $mode);
+                        if (boolval($setting['UpdateSetpointPosition'])) {
+                            $this->SetValue('SetpointPosition', $position);
+                        }
+                        if (boolval($setting['UpdateLastPosition'])) {
+                            $this->SetValue('LastPosition', $position);
+                        }
+                        $duration = 0;
+                        $durationUnit = 0;
+                        if ($mode == 2) { // Timer
+                            $duration = $setting['Duration'];
+                            $durationUnit = $setting['DurationUnit'];
+                        }
+                        $this->MoveBlind($position, $duration, $durationUnit);
+                    }
+                }
+            }
         }
     }
 
     /**
-     * Sets the blind slider and moves the blind to the position.
+     * Sets the blind slider and moves the blind to the position, triggered by ident.
      *
      * @param int $Position
      */
@@ -313,6 +343,9 @@ class KomfortRollladensteuerung extends IPSModule
         $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
         if ($this->ReadPropertyBoolean('BlindSliderUpdateSetpointPosition')) {
             $this->SetValue('SetpointPosition', $Position);
+        }
+        if ($this->ReadPropertyBoolean('BlindSliderUpdateLastPosition')) {
+            $this->SetValue('LastPosition', $Position);
         }
         $this->MoveBlind(intval($Position), 0, 0);
     }
@@ -328,6 +361,9 @@ class KomfortRollladensteuerung extends IPSModule
         if ($this->ReadPropertyBoolean('PositionPresetsUpdateSetpointPosition')) {
             $this->SetValue('SetpointPosition', $Position);
         }
+        if ($this->ReadPropertyBoolean('PositionPresetsUpdateLastPosition')) {
+            $this->SetValue('LastPosition', $Position);
+        }
         $this->MoveBlind(intval($Position), 0, 0);
     }
 
@@ -336,24 +372,26 @@ class KomfortRollladensteuerung extends IPSModule
     private function RegisterProperties(): void
     {
         // General options
-        $this->RegisterPropertyBoolean('InstanceActive', true);
+        $this->RegisterPropertyBoolean('MaintenanceMode', false);
         $this->RegisterPropertyBoolean('EnableAutomaticMode', true);
         $this->RegisterPropertyBoolean('EnableSleepMode', true);
         $this->RegisterPropertyInteger('SleepDuration', 12);
         $this->RegisterPropertyBoolean('EnableBlindMode', true);
-        $this->RegisterPropertyString('CloseBlind', '[{"LabelCloseBlind":"","Position":0,"UpdateSetpointPosition":false,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0}]');
+        $this->RegisterPropertyString('CloseBlind', '[{"LabelCloseBlind":"","UseSettings":true,"Position":0,"UpdateSetpointPosition":false,"UpdateLastPosition":false,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0,"CheckBlindMode":0,"CheckIsDay":0,"CheckTwilight":0,"CheckPresence":0,"CheckDoorWindowStatus":0}]');
         $this->RegisterPropertyBoolean('EnableStopFunction', true);
-        $this->RegisterPropertyString('Timer', '[{"LabelTimer":"","UseSettings":true,"Position":50,"UpdateSetpointPosition":false,"Duration":30,"DurationUnit":1,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0,"LabelOperationalAction":"","OperationalAction":2,"DefinedPosition":0}]');
-        $this->RegisterPropertyString('OpenBlind', '[{"LabelOpenBlind":"","Position":100,"UpdateSetpointPosition":false,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0}]');
+        $this->RegisterPropertyString('Timer', '[{"LabelTimer":"","UseSettings":true,"Position":50,"UpdateSetpointPosition":false,"UpdateLastPosition":false,"Duration":30,"DurationUnit":1,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0,"CheckBlindMode":0,"CheckIsDay":0,"CheckTwilight":0,"CheckPresence":0,"CheckDoorWindowStatus":0,"LabelOperationalAction":"","OperationalAction":1,"DefinedPosition":0}]');
+        $this->RegisterPropertyString('OpenBlind', '[{"LabelOpenBlind":"","UseSettings":true,"Position":100,"UpdateSetpointPosition":false,"UpdateLastPosition":false,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0,"CheckBlindMode":0,"CheckIsDay":0,"CheckTwilight":0,"CheckPresence":0,"CheckDoorWindowStatus":0}]');
         $this->RegisterPropertyBoolean('EnableBlindSlider', true);
         $this->RegisterPropertyBoolean('BlindSliderUpdateSetpointPosition', false);
+        $this->RegisterPropertyBoolean('BlindSliderUpdateLastPosition', false);
         $this->RegisterPropertyBoolean('EnablePositionPresets', true);
-        $this->RegisterPropertyBoolean('PositionPresetsUpdateSetpointPosition', false);
         $this->RegisterPropertyString('PositionPresets', '[{"Value":0,"Text":"0 %"},{"Value":25,"Text":"25 %"}, {"Value":50,"Text":"50 %"},{"Value":75,"Text":"75 %"},{"Value":100,"Text":"100 %"}]');
+        $this->RegisterPropertyBoolean('PositionPresetsUpdateSetpointPosition', false);
+        $this->RegisterPropertyBoolean('PositionPresetsUpdateLastPosition', false);
         $this->RegisterPropertyBoolean('EnableSetpointPosition', true);
-        $this->RegisterPropertyBoolean('EnableSetpointPositionManualChange', true);
+        $this->RegisterPropertyBoolean('EnableSetpointPositionManualChange', false);
         $this->RegisterPropertyBoolean('EnableLastPosition', true);
-        $this->RegisterPropertyBoolean('EnableLastPositionManualChange', true);
+        $this->RegisterPropertyBoolean('EnableLastPositionManualChange', false);
         $this->RegisterPropertyBoolean('EnableDoorWindowStatus', true);
         $this->RegisterPropertyBoolean('EnableBlindModeTimer', true);
         $this->RegisterPropertyBoolean('EnableSleepModeTimer', true);
@@ -364,42 +402,52 @@ class KomfortRollladensteuerung extends IPSModule
         $this->RegisterPropertyBoolean('EnableIsDay', true);
         $this->RegisterPropertyBoolean('EnableTwilight', true);
         $this->RegisterPropertyBoolean('EnablePresence', true);
+        $this->RegisterPropertyBoolean('UseMessageSinkDebug', false);
         // Actuator
         $this->RegisterPropertyInteger('Actuator', 0);
         $this->RegisterPropertyInteger('DeviceType', 0);
         $this->RegisterPropertyInteger('ActuatorProperty', 0);
         $this->RegisterPropertyInteger('ActuatorBlindPosition', 0);
+        $this->RegisterPropertyBoolean('ActuatorUpdateBlindPosition', false);
+        $this->RegisterPropertyBoolean('ActuatorUpdateSetpointPosition', false);
+        $this->RegisterPropertyBoolean('ActuatorUpdateLastPosition', false);
         $this->RegisterPropertyInteger('ActuatorActivityStatus', 0);
         $this->RegisterPropertyInteger('ActuatorControl', 0);
         // Door and window status
         $this->RegisterPropertyString('DoorWindowSensors', '[]');
-        $this->RegisterPropertyString('DoorWindowOpenAction', '[{"LabelOpened":"","SelectPosition":0,"DefinedPosition":0,"UpdateSetpointPosition":false,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0}]');
-        $this->RegisterPropertyString('DoorWindowCloseAction', '[{"LabelClosed":"","SelectPosition":0,"DefinedPosition":0,"UpdateSetpointPosition":false,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0}]');
+        $this->RegisterPropertyString('DoorWindowOpenAction', '[]');
+        $this->RegisterPropertyString('DoorWindowCloseAction', '[]');
         // Switching times
-        $this->RegisterPropertyString('SwitchingTimeOne', '[{"LabelSwitchingTime":"","UseSettings":false,"SwitchingTime":"{\"hour\":0,\"minute\":0,\"second\":0}","Position":0,"UpdateSetpointPosition":false,"ExecutionDelay":0,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0,"CheckBlindMode":0,"CheckIsDay":0,"CheckTwilight":0,"CheckPresence":0}]');
-        $this->RegisterPropertyString('SwitchingTimeTwo', '[{"LabelSwitchingTime":"","UseSettings":false,"SwitchingTime":"{\"hour\":0,\"minute\":0,\"second\":0}","Position":0,"UpdateSetpointPosition":false,"ExecutionDelay":0,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0,"CheckBlindMode":0,"CheckIsDay":0,"CheckTwilight":0,"CheckPresence":0}]');
-        $this->RegisterPropertyString('SwitchingTimeThree', '[{"LabelSwitchingTime":"","UseSettings":false,"SwitchingTime":"{\"hour\":0,\"minute\":0,\"second\":0}","Position":0,"UpdateSetpointPosition":false,"ExecutionDelay":0,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0,"CheckBlindMode":0,"CheckIsDay":0,"CheckTwilight":0,"CheckPresence":0}]');
-        $this->RegisterPropertyString('SwitchingTimeFour', '[{"LabelSwitchingTime":"","UseSettings":false,"SwitchingTime":"{\"hour\":0,\"minute\":0,\"second\":0}","Position":0,"UpdateSetpointPosition":false,"ExecutionDelay":0,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0,"CheckBlindMode":0,"CheckIsDay":0,"CheckTwilight":0,"CheckPresence":0}]');
+        $this->RegisterPropertyString('SwitchingTimeOne', '{"hour":0,"minute":0,"second":0}');
+        $this->RegisterPropertyString('SwitchingTimeOneActions', '[]');
+        $this->RegisterPropertyString('SwitchingTimeTwo', '{"hour":0,"minute":0,"second":0}');
+        $this->RegisterPropertyString('SwitchingTimeTwoActions', '[]');
+        $this->RegisterPropertyString('SwitchingTimeThree', '{"hour":0,"minute":0,"second":0}');
+        $this->RegisterPropertyString('SwitchingTimeThreeActions', '[]');
+        $this->RegisterPropertyString('SwitchingTimeFour', '{"hour":0,"minute":0,"second":0}');
+        $this->RegisterPropertyString('SwitchingTimeFourActions', '[]');
         // Sunrise and sunset
-        $this->RegisterPropertyString('Sunrise', '[{"LabelSunrise":"","UseSettings":false,"ID":0,"Position":0,"UpdateSetpointPosition":false,"ExecutionDelay":0,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0,"CheckBlindMode":0,"CheckIsDay":0,"CheckTwilight":0,"CheckPresence":0}]');
-        $this->RegisterPropertyString('Sunset', '[{"LabelSunset":"","UseSettings":false,"ID":0,"Position":0,"UpdateSetpointPosition":false,"ExecutionDelay":0,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0,"CheckBlindMode":0,"CheckIsDay":0,"CheckTwilight":0,"CheckPresence":0}]');
+        $this->RegisterPropertyInteger('Sunrise', 0);
+        $this->RegisterPropertyString('SunriseActions', '[]');
+        $this->RegisterPropertyInteger('Sunset', 0);
+        $this->RegisterPropertyString('SunsetActions', '[]');
         // Weekly schedule
         $this->RegisterPropertyInteger('WeeklySchedule', 0);
-        $this->RegisterPropertyString('WeeklyScheduleActionOne', '[{"LabelWeeklyScheduleAction":"","UseSettings":false,"ID":0,"Position":0,"UpdateSetpointPosition":false,"ExecutionDelay":0,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0,"CheckBlindMode":0,"CheckIsDay":0,"CheckTwilight":0,"CheckPresence":0}]');
-        $this->RegisterPropertyString('WeeklyScheduleActionTwo', '[{"LabelWeeklyScheduleAction":"","UseSettings":false,"ID":0,"Position":100,"UpdateSetpointPosition":false,"ExecutionDelay":0,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0,"CheckBlindMode":0,"CheckIsDay":0,"CheckTwilight":0,"CheckPresence":0}]');
-        $this->RegisterPropertyString('WeeklyScheduleActionThree', '[{"LabelWeeklyScheduleAction":"","UseSettings":false,"ID":0,"Position":60,"UpdateSetpointPosition":false,"ExecutionDelay":0,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0,"CheckBlindMode":0,"CheckIsDay":0,"CheckTwilight":0,"CheckPresence":0}]');
+        $this->RegisterPropertyString('WeeklyScheduleActionOne', '[]');
+        $this->RegisterPropertyString('WeeklyScheduleActionTwo', '[]');
+        $this->RegisterPropertyString('WeeklyScheduleActionThree', '[]');
         // Is day
         $this->RegisterPropertyInteger('IsDay', 0);
-        $this->RegisterPropertyString('NightAction', '[{"LabelNightAction":"","UseSettings":false,"Position":0,"UpdateSetpointPosition":false,"ExecutionDelay":0,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0,"CheckBlindMode":0,"CheckTwilight":0,"CheckPresence":0}]');
-        $this->RegisterPropertyString('DayAction', '[{"LabelDayAction":"","UseSettings":false,"Position":100,"UpdateSetpointPosition":false,"ExecutionDelay":0,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0,"CheckBlindMode":0,"CheckTwilight":0,"CheckPresence":0}]');
+        $this->RegisterPropertyString('NightAction', '[]');
+        $this->RegisterPropertyString('DayAction', '[]');
         // Twilight
         $this->RegisterPropertyInteger('TwilightStatus', 0);
-        $this->RegisterPropertyString('TwilightDayAction', '[{"LabelTwilightDayAction":"","UseSettings":false,"Position":100,"UpdateSetpointPosition":false,"ExecutionDelay":0,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0,"CheckBlindMode":0,"CheckIsDay":0,"CheckPresence":0}]');
-        $this->RegisterPropertyString('TwilightNightAction', '[{"LabelTwilightNightAction":"","UseSettings":false,"Position":0,"UpdateSetpointPosition":false,"ExecutionDelay":0,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0,"CheckBlindMode":0,"CheckIsDay":0,"CheckPresence":0}]');
+        $this->RegisterPropertyString('TwilightDayAction', '[]');
+        $this->RegisterPropertyString('TwilightNightAction', '[]');
         // Presence and absence
         $this->RegisterPropertyInteger('PresenceStatus', 0);
-        $this->RegisterPropertyString('AbsenceAction', '[{"LabelAbsenceAction":"","UseSettings":false,"Position":0,"UpdateSetpointPosition":false,"ExecutionDelay":0,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0,"CheckBlindMode":0,"CheckIsDay":0,"CheckTwilight":0}]');
-        $this->RegisterPropertyString('PresenceAction', '[{"LabelPresenceAction":"","UseSettings":false,"Position":100,"UpdateSetpointPosition":false,"ExecutionDelay":0,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0,"CheckBlindMode":0,"CheckIsDay":0,"CheckTwilight":0}]');
+        $this->RegisterPropertyString('AbsenceAction', '[]');
+        $this->RegisterPropertyString('PresenceAction', '[]');
         // Triggers
         $this->RegisterPropertyString('Triggers', '[]');
         // Emergency triggers
@@ -537,11 +585,9 @@ class KomfortRollladensteuerung extends IPSModule
     {
         // Sunrise
         $targetID = 0;
-        $sunrise = json_decode($this->ReadPropertyString('Sunrise'), true)[0];
-        if (!empty($sunrise)) {
-            if ($sunrise['UseSettings']) {
-                $targetID = $sunrise['ID'];
-            }
+        $sunrise = $this->ReadPropertyInteger('Sunrise');
+        if ($sunrise != 0 && @IPS_ObjectExists($sunrise)) {
+            $targetID = $sunrise;
         }
         $linkID = @IPS_GetLinkIDByName('Nächster Sonnenaufgang', $this->InstanceID);
         if ($targetID != 0 && @IPS_ObjectExists($targetID)) {
@@ -561,11 +607,9 @@ class KomfortRollladensteuerung extends IPSModule
         }
         // Sunset
         $targetID = 0;
-        $sunrise = json_decode($this->ReadPropertyString('Sunset'), true)[0];
-        if (!empty($sunrise)) {
-            if ($sunrise['UseSettings']) {
-                $targetID = $sunrise['ID'];
-            }
+        $sunset = $this->ReadPropertyInteger('Sunset');
+        if ($sunset != 0 && @IPS_ObjectExists($sunset)) {
+            $targetID = $sunset;
         }
         $linkID = @IPS_GetLinkIDByName('Nächster Sonnenuntergang', $this->InstanceID);
         if ($targetID != 0 && @IPS_ObjectExists($targetID)) {
@@ -714,12 +758,17 @@ class KomfortRollladensteuerung extends IPSModule
         // Next switching time
         $hide = !$this->ReadPropertyBoolean('EnableNextSwitchingTime');
         if (!$hide) {
-            $properties = ['SwitchingTimeOne', 'SwitchingTimeTwo', 'SwitchingTimeThree', 'SwitchingTimeFour'];
+            $properties = ['SwitchingTimeOneActions', 'SwitchingTimeTwoActions', 'SwitchingTimeThreeActions', 'SwitchingTimeFourActions'];
             $hide = true;
             foreach ($properties as $property) {
-                $use = json_decode($this->ReadPropertyString($property), true)[0]['UseSettings'];
-                if ($use) {
-                    $hide = false;
+                $actions = json_decode($this->ReadPropertyString($property), true);
+                if (!empty($actions)) {
+                    foreach ($actions as $action) {
+                        $use = $action['UseSettings'];
+                        if ($use) {
+                            $hide = false;
+                        }
+                    }
                 }
             }
         }
@@ -728,11 +777,21 @@ class KomfortRollladensteuerung extends IPSModule
         $id = @IPS_GetLinkIDByName('Nächster Sonnenaufgang', $this->InstanceID);
         if ($id !== false) {
             $hide = true;
-            $settings = json_decode($this->ReadPropertyString('Sunrise'), true)[0];
-            $targetID = $settings['ID'];
-            if ($targetID != 0 && @IPS_ObjectExists($targetID)) {
-                if ($settings['UseSettings']) {
+            $sunrise = false;
+            $sunriseActions = json_decode($this->ReadPropertyString('SunriseActions'), true);
+            if (!empty($sunriseActions)) {
+                foreach ($sunriseActions as $sunriseAction) {
+                    if ($sunriseAction['UseSettings']) {
+                        $sunrise = true;
+                    }
+                }
+            }
+            if ($sunrise) {
+                $sunriseID = $this->ReadPropertyInteger('Sunrise');
+                if ($sunriseID != 0 && @IPS_ObjectExists($sunriseID)) {
                     $hide = false;
+                } else {
+                    $hide = !$this->ReadPropertyBoolean('EnableSunrise');
                 }
             }
             IPS_SetHidden($id, $hide);
@@ -741,11 +800,21 @@ class KomfortRollladensteuerung extends IPSModule
         $id = @IPS_GetLinkIDByName('Nächster Sonnenuntergang', $this->InstanceID);
         if ($id !== false) {
             $hide = true;
-            $settings = json_decode($this->ReadPropertyString('Sunset'), true)[0];
-            $targetID = $settings['ID'];
-            if ($targetID != 0 && @IPS_ObjectExists($targetID)) {
-                if ($settings['UseSettings']) {
+            $sunset = false;
+            $sunsetActions = json_decode($this->ReadPropertyString('SunriseActions'), true);
+            if (!empty($sunsetActions)) {
+                foreach ($sunsetActions as $sunsetAction) {
+                    if ($sunsetAction['UseSettings']) {
+                        $sunset = true;
+                    }
+                }
+            }
+            if ($sunset) {
+                $sunsetID = $this->ReadPropertyInteger('Sunrise');
+                if ($sunsetID != 0 && @IPS_ObjectExists($sunsetID)) {
                     $hide = false;
+                } else {
+                    $hide = !$this->ReadPropertyBoolean('EnableSunset');
                 }
             }
             IPS_SetHidden($id, $hide);
@@ -844,7 +913,7 @@ class KomfortRollladensteuerung extends IPSModule
     }
 
     /**
-     * Updates the blind slider.
+     * Updates the blind slider, triggered by actuator.
      */
     private function UpdateBlindSlider(): void
     {
@@ -875,24 +944,58 @@ class KomfortRollladensteuerung extends IPSModule
                     if (isset($closestPreset)) {
                         $this->SetValue('PositionPresets', $closestPreset);
                     }
-                    if ($this->ReadPropertyBoolean('BlindSliderUpdateSetpointPosition')) {
+                    if ($this->ReadPropertyBoolean('ActuatorUpdateSetpointPosition')) {
                         $this->SetValue('SetpointPosition', $actualPosition);
                     }
-                    $this->SetValue('LastPosition', $actualPosition);
+                    if ($this->ReadPropertyBoolean('ActuatorUpdateLastPosition')) {
+                        $this->SetValue('LastPosition', $actualPosition);
+                    }
                 }
             }
         }
     }
 
-    private function CheckInstanceStatus(): void
+    private function CheckMaintenanceMode(): bool
     {
+        $result = true;
         $status = 102;
-        $disabled = false;
-        if (!$this->ReadPropertyBoolean('InstanceActive')) {
+        if ($this->ReadPropertyBoolean('MaintenanceMode')) {
+            $result = false;
             $status = 104;
-            $disabled = true;
+            $this->SendDebug(__FUNCTION__, 'Abbruch, der Wartungsmodus ist aktiv!', 0);
+            $this->LogMessage('ID ' . $this->InstanceID . ', ' . __FUNCTION__ . ', Abbruch, der Wartungsmodus ist aktiv!', KL_WARNING);
         }
         $this->SetStatus($status);
-        IPS_SetDisabled($this->InstanceID, $disabled);
+        IPS_SetDisabled($this->InstanceID, !$result);
+        return $result;
+    }
+
+    /**
+     * Checks for a activated action.
+     *
+     * @param string $PropertyVariableName
+     * @param string $PropertyActionName
+     * @return bool
+     * false    = no activated action available
+     * true     = activate action
+     */
+    private function CheckAction(string $PropertyVariableName, string $PropertyActionName): bool
+    {
+        $result = false;
+        $actions = json_decode($this->ReadPropertyString($PropertyActionName), true);
+        if (!empty($actions)) {
+            foreach ($actions as $action) {
+                if ($action['UseSettings']) {
+                    $result = true;
+                }
+            }
+        }
+        if ($result) {
+            $id = $this->ReadPropertyInteger($PropertyVariableName);
+            if ($id == 0 || !@IPS_ObjectExists($id)) {
+                $result = false;
+            }
+        }
+        return $result;
     }
 }
