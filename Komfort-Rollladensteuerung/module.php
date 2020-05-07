@@ -12,7 +12,7 @@
  * @license     CC BY-NC-SA 4.0
  *              https://creativecommons.org/licenses/by-nc-sa/4.0/
  *
- * @version     2.00-12
+ * @version     2.00-13
  * @date        2020-05-02, 18:00, 1588438800
  * @review      2020-05-02, 18:00
  *
@@ -532,50 +532,40 @@ class KomfortRollladensteuerung extends IPSModule
         $profile = 'KRS.' . $this->InstanceID . '.AutomaticMode';
         $this->RegisterVariableBoolean('AutomaticMode', 'Automatik', $profile, 0);
         $this->EnableAction('AutomaticMode');
-
         // Sleep mode
         $profile = 'KRS.' . $this->InstanceID . '.SleepMode';
         $this->RegisterVariableBoolean('SleepMode', 'Ruhe-Modus', $profile, 1);
         $this->EnableAction('SleepMode');
-
         // Blind mode
         $profile = 'KRS.' . $this->InstanceID . '.BlindMode';
         $this->RegisterVariableInteger('BlindMode', 'Rollladen', $profile, 2);
         $this->EnableAction('BlindMode');
-
         // Blind slider
         $profile = '~Intensity.100';
         $this->RegisterVariableInteger('BlindSlider', 'Rollladenposition', $profile, 3);
         IPS_SetIcon($this->GetIDForIdent('BlindSlider'), 'Jalousie');
         $this->EnableAction('BlindSlider');
-
         // Position presets
         $profile = 'KRS.' . $this->InstanceID . '.PositionPresets';
         $this->RegisterVariableInteger('PositionPresets', 'Position Voreinstellungen', $profile, 4);
         $this->EnableAction('PositionPresets');
-
         // Setpoint position
         $profile = '~Intensity.100';
         $this->RegisterVariableInteger('SetpointPosition', 'Soll-Position', $profile, 5);
         IPS_SetIcon($this->GetIDForIdent('SetpointPosition'), 'Information');
-
         // Last position
         $profile = '~Intensity.100';
         $this->RegisterVariableInteger('LastPosition', 'Letzte Position', $profile, 6);
         IPS_SetIcon($this->GetIDForIdent('LastPosition'), 'Information');
-
         // Door and window status
         $profile = 'KRS.' . $this->InstanceID . '.DoorWindowStatus';
         $this->RegisterVariableBoolean('DoorWindowStatus', 'Tür- / Fensterstatus', $profile, 7);
-
         // Blind mode timer
         $this->RegisterVariableString('BlindModeTimer', 'Rollladenposition bis', '', 8);
         IPS_SetIcon($this->GetIDForIdent('BlindModeTimer'), 'Clock');
-
         // Sleep mode timer
         $this->RegisterVariableString('SleepModeTimer', 'Ruhe-Modus Timer', '', 9);
         IPS_SetIcon($this->GetIDForIdent('SleepModeTimer'), 'Clock');
-
         // Next switching time
         $this->RegisterVariableString('NextSwitchingTime', 'Nächste Schaltzeit', '', 10);
         IPS_SetIcon($this->GetIDForIdent('NextSwitchingTime'), 'Information');

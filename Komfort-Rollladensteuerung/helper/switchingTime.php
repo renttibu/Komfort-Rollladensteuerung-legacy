@@ -56,34 +56,36 @@ trait KRS_switchingTime
                 return;
             }
             foreach ($settings as $setting) {
-                $this->SendDebug(__FUNCTION__, 'Die ' . $switchingTimeName . ' wird ausgeführt!', 0);
-                // Check conditions
-                $conditions = [
-                    ['type' => 0, 'condition' => ['Position' => $setting['Position'], 'CheckPositionDifference' => $setting['CheckPositionDifference']]],
-                    ['type' => 1, 'condition' => ['Position' => $setting['Position'], 'CheckLockoutProtection' => $setting['CheckLockoutProtection']]],
-                    ['type' => 2, 'condition' => $setting['CheckAutomaticMode']],
-                    ['type' => 3, 'condition' => $setting['CheckSleepMode']],
-                    ['type' => 4, 'condition' => $setting['CheckBlindMode']],
-                    ['type' => 5, 'condition' => $setting['CheckIsDay']],
-                    ['type' => 6, 'condition' => $setting['CheckTwilight']],
-                    ['type' => 7, 'condition' => $setting['CheckPresence']],
-                    ['type' => 8, 'condition' => $setting['CheckDoorWindowStatus']]];
-                $checkConditions = $this->CheckConditions(json_encode($conditions));
-                if (!$checkConditions) {
+                if ($setting['UseSettings']) {
+                    $this->SendDebug(__FUNCTION__, 'Die ' . $switchingTimeName . ' wird ausgeführt!', 0);
+                    // Check conditions
+                    $conditions = [
+                        ['type' => 0, 'condition' => ['Position' => $setting['Position'], 'CheckPositionDifference' => $setting['CheckPositionDifference']]],
+                        ['type' => 1, 'condition' => ['Position' => $setting['Position'], 'CheckLockoutProtection' => $setting['CheckLockoutProtection']]],
+                        ['type' => 2, 'condition' => $setting['CheckAutomaticMode']],
+                        ['type' => 3, 'condition' => $setting['CheckSleepMode']],
+                        ['type' => 4, 'condition' => $setting['CheckBlindMode']],
+                        ['type' => 5, 'condition' => $setting['CheckIsDay']],
+                        ['type' => 6, 'condition' => $setting['CheckTwilight']],
+                        ['type' => 7, 'condition' => $setting['CheckPresence']],
+                        ['type' => 8, 'condition' => $setting['CheckDoorWindowStatus']]];
+                    $checkConditions = $this->CheckConditions(json_encode($conditions));
+                    if (!$checkConditions) {
+                        $this->SetSwitchingTimes();
+                        continue;
+                    }
+                    // Trigger action
+                    $position = $setting['Position'];
+                    if ($setting['UpdateSetpointPosition']) {
+                        $this->SetValue('SetpointPosition', $position);
+                    }
+                    if ($setting['UpdateLastPosition']) {
+                        $this->SetValue('LastPosition', $position);
+                    }
+                    $this->TriggerExecutionDelay(intval($setting['ExecutionDelay']));
+                    $this->MoveBlind($position, 0, 0);
                     $this->SetSwitchingTimes();
-                    continue;
                 }
-                // Trigger action
-                $position = $setting['Position'];
-                if ($setting['UpdateSetpointPosition']) {
-                    $this->SetValue('SetpointPosition', $position);
-                }
-                if ($setting['UpdateLastPosition']) {
-                    $this->SetValue('LastPosition', $position);
-                }
-                $this->TriggerExecutionDelay(intval($setting['ExecutionDelay']));
-                $this->MoveBlind($position, 0, 0);
-                $this->SetSwitchingTimes();
             }
         }
     }
