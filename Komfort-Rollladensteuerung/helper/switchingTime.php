@@ -13,6 +13,9 @@ trait KRS_switchingTime
     public function ExecuteSwitchingTime(int $SwitchingTime): void
     {
         $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
+        if ($this->CheckMaintenanceMode()) {
+            return;
+        }
         switch ($SwitchingTime) {
             // Abort
             case 0:
@@ -59,17 +62,7 @@ trait KRS_switchingTime
                 if ($setting['UseSettings']) {
                     $this->SendDebug(__FUNCTION__, 'Die ' . $switchingTimeName . ' wird ausgeführt!', 0);
                     // Check conditions
-                    $conditions = [
-                        ['type' => 0, 'condition' => ['Position' => $setting['Position'], 'CheckPositionDifference' => $setting['CheckPositionDifference']]],
-                        ['type' => 1, 'condition' => ['Position' => $setting['Position'], 'CheckLockoutProtection' => $setting['CheckLockoutProtection']]],
-                        ['type' => 2, 'condition' => $setting['CheckAutomaticMode']],
-                        ['type' => 3, 'condition' => $setting['CheckSleepMode']],
-                        ['type' => 4, 'condition' => $setting['CheckBlindMode']],
-                        ['type' => 5, 'condition' => $setting['CheckIsDay']],
-                        ['type' => 6, 'condition' => $setting['CheckTwilight']],
-                        ['type' => 7, 'condition' => $setting['CheckPresence']],
-                        ['type' => 8, 'condition' => $setting['CheckDoorWindowStatus']]];
-                    $checkConditions = $this->CheckConditions(json_encode($conditions));
+                    $checkConditions = $this->CheckAllConditions(json_encode($setting));
                     if (!$checkConditions) {
                         $this->SetSwitchingTimes();
                         continue;
@@ -242,7 +235,7 @@ trait KRS_switchingTime
             }
             array_multisort($interval, SORT_ASC, $timer);
             $timestamp = time() + ($timer[0]['interval'] / 1000);
-            $this->SetValue('NextSwitchingTime', date('d.m.Y, H:i:s', ($timestamp)));
+            $this->SetValue('NextSwitchingTime', $this->GetTimeStampString($timestamp));
         } else {
             $this->SetValue('NextSwitchingTime', '-');
         }

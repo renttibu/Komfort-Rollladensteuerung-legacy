@@ -19,7 +19,7 @@ trait KRS_moveBlind
     public function MoveBlind(int $Position, int $Duration = 0, int $DurationUnit = 0): bool
     {
         $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
-        if (!$this->CheckMaintenanceMode()) {
+        if ($this->CheckMaintenanceMode()) {
             return false;
         }
         $result = false;
@@ -70,19 +70,7 @@ trait KRS_moveBlind
         if (isset($mode)) {
             $this->SetValue('BlindMode', $mode);
             $this->SetValue('BlindSlider', $Position);
-            $profile = 'KRS.' . $this->InstanceID . '.PositionPresets';
-            $associations = IPS_GetVariableProfile($profile)['Associations'];
-            if (!empty($associations)) {
-                $closestPreset = null;
-                foreach ($associations as $association) {
-                    if ($closestPreset === null || abs($Position - $closestPreset) > abs($association['Value'] - $Position)) {
-                        $closestPreset = $association['Value'];
-                    }
-                }
-            }
-            if (isset($closestPreset)) {
-                $this->SetValue('PositionPresets', $closestPreset);
-            }
+            $this->SetClosestPositionPreset($Position);
             $variableType = @IPS_GetVariable($id)['VariableType'];
             switch ($variableType) {
                 // Boolean
@@ -185,6 +173,41 @@ trait KRS_moveBlind
     }
 
     //##################### Private
+
+    /**
+     * Updates the blind position.
+     */
+    private function UpdateBlindPosition(): void
+    {
+        $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
+        $id = $this->ReadPropertyInteger('ActuatorActivityStatus');
+        if ($id != 0 && @IPS_ObjectExists($id)) {
+            $updateBlindPosition = $this->ReadPropertyBoolean('ActuatorUpdateBlindPosition');
+            if (!$updateBlindPosition) {
+                $this->SendDebug(__FUNCTION__, 'Abbruch, die Aktualisierung der Rollladenposition ist deaktiviert!', 0);
+            }
+            if (GetValue($id) == 0) {
+                $id = $this->ReadPropertyInteger('ActuatorBlindPosition');
+                if ($id != 0 && @IPS_ObjectExists($id)) {
+                    $actualPosition = intval($this->GetActualBlindPosition());
+                    $this->SendDebug(__FUNCTION__, 'Neue Position: ' . $actualPosition . '%.', 0);
+                    $blindMode = 0;
+                    if ($actualPosition > 0) {
+                        $blindMode = 3;
+                    }
+                    $this->SetValue('BlindMode', intval($blindMode));
+                    $this->SetValue('BlindSlider', intval($actualPosition));
+                    $this->SetClosestPositionPreset($actualPosition);
+                    if ($this->ReadPropertyBoolean('ActuatorUpdateSetpointPosition')) {
+                        $this->SetValue('SetpointPosition', $actualPosition);
+                    }
+                    if ($this->ReadPropertyBoolean('ActuatorUpdateLastPosition')) {
+                        $this->SetValue('LastPosition', $actualPosition);
+                    }
+                }
+            }
+        }
+    }
 
     /**
      * Stops the blind moving.
@@ -344,7 +367,7 @@ trait KRS_moveBlind
         }
         $this->SetTimerInterval('StopBlindTimer', $Duration * 1000);
         $timestamp = time() + $Duration;
-        $this->SetValue('BlindModeTimer', date('d.m.Y, H:i:s', ($timestamp)));
+        $this->SetValue('BlindModeTimer', $this->GetTimeStampString($timestamp));
         $this->SendDebug(__FUNCTION__, 'Die Dauer des Timers wurde festgelegt.', 0);
     }
 

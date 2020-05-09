@@ -11,6 +11,9 @@ trait KRS_presenceDetection
     public function ExecutePresenceDetection(): void
     {
         $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
+        if ($this->CheckMaintenanceMode()) {
+            return;
+        }
         $id = $this->ReadPropertyInteger('PresenceStatus');
         $this->SendDebug(__FUNCTION__, 'Die Variable ' . $id . ' (Anwesenheitsstatus) hat sich geändert!', 0);
         $actualStatus = boolval(GetValue($id)); // false = absence, true = presence

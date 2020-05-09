@@ -15,6 +15,9 @@ trait KRS_emergencyTriggers
     public function ExecuteEmergencyTrigger(int $VariableID): void
     {
         $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
+        if ($this->CheckMaintenanceMode()) {
+            return;
+        }
         $settings = json_decode($this->ReadPropertyString('EmergencyTriggers'), true);
         if (!empty($settings)) {
             foreach ($settings as $setting) {

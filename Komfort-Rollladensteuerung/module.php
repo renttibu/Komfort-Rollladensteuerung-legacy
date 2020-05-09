@@ -12,9 +12,9 @@
  * @license     CC BY-NC-SA 4.0
  *              https://creativecommons.org/licenses/by-nc-sa/4.0/
  *
- * @version     2.00-13
- * @date        2020-05-02, 18:00, 1588438800
- * @review      2020-05-02, 18:00
+ * @version     2.00-14
+ * @date        2020-05-09, 18:00, 1589043600
+ * @review      2020-05-09, 18:00
  *
  * @see         https://github.com/ubittner/Komfort-Rollladensteuerung
  *
@@ -53,6 +53,11 @@ class KomfortRollladensteuerung extends IPSModule
     private const DEVICE_DELAY_MILLISECONDS = 250;
     private const HOMEMATIC_DEVICE_GUID = '{EE4A81C6-5C90-4DB7-AD2F-F6BBD521412E}';
 
+    /**
+     * Creates this instance.
+     *
+     * @return bool|void
+     */
     public function Create()
     {
         // Never delete this line!
@@ -71,6 +76,11 @@ class KomfortRollladensteuerung extends IPSModule
         $this->RegisterSwitchingTimers();
     }
 
+    /**
+     * Applies the cahnges of this instance.
+     *
+     * @return bool|void
+     */
     public function ApplyChanges()
     {
         // Wait until IP-Symcon is started
@@ -98,11 +108,16 @@ class KomfortRollladensteuerung extends IPSModule
         // Check door and windows
         $this->CheckDoorWindowSensors();
         // Update blind slider
-        $this->UpdateBlindSlider();
+        $this->UpdateBlindPosition();
         // Check maintenance mode
         $this->CheckMaintenanceMode();
     }
 
+    /**
+     * Destroys this instance.
+     *
+     * @return bool|void
+     */
     public function Destroy()
     {
         // Never delete this line!
@@ -111,16 +126,19 @@ class KomfortRollladensteuerung extends IPSModule
         $this->DeleteProfiles();
     }
 
-    private function KernelReady()
-    {
-        $this->ApplyChanges();
-    }
-
+    /**
+     * Reloads the configuration form.
+     */
     public function ReloadConfiguration()
     {
         $this->ReloadForm();
     }
 
+    /**
+     * Gets the configuration form.
+     *
+     * @return false|string
+     */
     public function GetConfigurationForm()
     {
         $formData = json_decode(file_get_contents(__DIR__ . '/form.json'));
@@ -190,8 +208,42 @@ class KomfortRollladensteuerung extends IPSModule
         return json_encode($formData);
     }
 
+    /**
+     * Deactivates the sleep mode timer.
+     */
+    public function DeactivateSleepModeTimer(): void
+    {
+        $this->SetValue('SleepMode', false);
+        $this->SetTimerInterval('SleepMode', 0);
+        $this->SetValue('SleepModeTimer', '-');
+    }
+
+    /**
+     * Creates a script example.
+     */
+    public function CreateScriptExample(): void
+    {
+        $scriptID = IPS_CreateScript(0);
+        IPS_SetName($scriptID, 'Beispielskript (Komfort-Rollladensteuerung #' . $this->InstanceID . ')');
+        $scriptContent = "<?php\n\n// Methode:\n// KRS_MoveBlind(integer \$InstanceID, integer \$Position, integer \$Duration, integer \$DurationUnit);\n\n### Beispiele:\n\n// Rollladen auf 0% schließen:\nKRS_MoveBlind(" . $this->InstanceID . ", 0, 0, 0);\n\n// Rollladen für 180 Sekunden öffnen:\nKRS_MoveBlind(" . $this->InstanceID . ", 100, 180, 0);\n\n// Rollladen für 5 Minuten öffnen:\nKRS_MoveBlind(" . $this->InstanceID . ", 100, 5, 1);\n\n// Rollladen auf 70% öffnen:\nKRS_MoveBlind(" . $this->InstanceID . ', 70, 0, 0);';
+        IPS_SetScriptContent($scriptID, $scriptContent);
+        IPS_SetParent($scriptID, $this->InstanceID);
+        IPS_SetPosition($scriptID, 100);
+        IPS_SetHidden($scriptID, true);
+        if ($scriptID != 0) {
+            echo 'Beispielskript wurde erfolgreich erstellt!';
+        }
+    }
+
     //#################### Request action
 
+    /**
+     * Requests an action via WebFront.
+     *
+     * @param $Ident
+     * @param $Value
+     * @return bool|void
+     */
     public function RequestAction($Ident, $Value)
     {
         switch ($Ident) {
@@ -299,17 +351,7 @@ class KomfortRollladensteuerung extends IPSModule
                     if ($setting['UseSettings']) {
                         $position = intval($setting['Position']);
                         // Check conditions
-                        $conditions = [
-                            ['type' => 0, 'condition' => ['Position' => $position, 'CheckPositionDifference' => $setting['CheckPositionDifference']]],
-                            ['type' => 1, 'condition' => ['Position' => $position, 'CheckLockoutProtection' => $setting['CheckLockoutProtection']]],
-                            ['type' => 2, 'condition' => $setting['CheckAutomaticMode']],
-                            ['type' => 3, 'condition' => $setting['CheckSleepMode']],
-                            ['type' => 4, 'condition' => $setting['CheckBlindMode']],
-                            ['type' => 5, 'condition' => $setting['CheckIsDay']],
-                            ['type' => 6, 'condition' => $setting['CheckTwilight']],
-                            ['type' => 7, 'condition' => $setting['CheckPresence']],
-                            ['type' => 8, 'condition' => $setting['CheckDoorWindowStatus']]];
-                        $checkConditions = $this->CheckConditions(json_encode($conditions));
+                        $checkConditions = $this->CheckAllConditions(json_encode($setting));
                         if (!$checkConditions) {
                             return;
                         }
@@ -334,7 +376,7 @@ class KomfortRollladensteuerung extends IPSModule
     }
 
     /**
-     * Sets the blind slider and moves the blind to the position, triggered by ident.
+     * Sets the blind slider and moves the blind to the position.
      *
      * @param int $Position
      */
@@ -369,6 +411,17 @@ class KomfortRollladensteuerung extends IPSModule
 
     //#################### Private
 
+    /**
+     * Applies the changes if ther kernel is ready.
+     */
+    private function KernelReady()
+    {
+        $this->ApplyChanges();
+    }
+
+    /**
+     * Registers the properties.
+     */
     private function RegisterProperties(): void
     {
         // General options
@@ -454,6 +507,9 @@ class KomfortRollladensteuerung extends IPSModule
         $this->RegisterPropertyString('EmergencyTriggers', '[]');
     }
 
+    /**
+     * Creates the profiles.
+     */
     private function CreateProfiles(): void
     {
         // Automatic mode
@@ -495,6 +551,9 @@ class KomfortRollladensteuerung extends IPSModule
         IPS_SetVariableProfileAssociation($profile, 1, 'Geöffnet', 'Window', 0x0000FF);
     }
 
+    /**
+     * Updates the position presets.
+     */
     private function UpdatePositionPresets(): void
     {
         // Position presets
@@ -515,6 +574,31 @@ class KomfortRollladensteuerung extends IPSModule
         }
     }
 
+    /**
+     * Sets the position preset to the closest value.
+     *
+     * @param int $Position
+     */
+    private function SetClosestPositionPreset(int $Position): void
+    {
+        $profile = 'KRS.' . $this->InstanceID . '.PositionPresets';
+        $associations = IPS_GetVariableProfile($profile)['Associations'];
+        if (!empty($associations)) {
+            $closestPreset = null;
+            foreach ($associations as $association) {
+                if ($closestPreset === null || abs($Position - $closestPreset) > abs($association['Value'] - $Position)) {
+                    $closestPreset = $association['Value'];
+                }
+            }
+        }
+        if (isset($closestPreset)) {
+            $this->SetValue('PositionPresets', $closestPreset);
+        }
+    }
+
+    /**
+     * Deletes the profiles of this instance.
+     */
     private function DeleteProfiles(): void
     {
         $profiles = ['AutomaticMode', 'SleepMode', 'BlindMode', 'PositionPresets', 'DoorWindowStatus'];
@@ -526,6 +610,9 @@ class KomfortRollladensteuerung extends IPSModule
         }
     }
 
+    /**
+     * Registers the variables.
+     */
     private function RegisterVariables(): void
     {
         // Automatic mode
@@ -571,6 +658,9 @@ class KomfortRollladensteuerung extends IPSModule
         IPS_SetIcon($this->GetIDForIdent('NextSwitchingTime'), 'Information');
     }
 
+    /**
+     * Creates links.
+     */
     private function CreateLinks(): void
     {
         // Sunrise
@@ -688,6 +778,9 @@ class KomfortRollladensteuerung extends IPSModule
         }
     }
 
+    /**
+     * Sets the options.
+     */
     private function SetOptions(): void
     {
         // Automatic mode
@@ -779,8 +872,6 @@ class KomfortRollladensteuerung extends IPSModule
             if ($sunrise) {
                 $sunriseID = $this->ReadPropertyInteger('Sunrise');
                 if ($sunriseID != 0 && @IPS_ObjectExists($sunriseID)) {
-                    $hide = false;
-                } else {
                     $hide = !$this->ReadPropertyBoolean('EnableSunrise');
                 }
             }
@@ -802,8 +893,6 @@ class KomfortRollladensteuerung extends IPSModule
             if ($sunset) {
                 $sunsetID = $this->ReadPropertyInteger('Sunrise');
                 if ($sunsetID != 0 && @IPS_ObjectExists($sunsetID)) {
-                    $hide = false;
-                } else {
                     $hide = !$this->ReadPropertyBoolean('EnableSunset');
                 }
             }
@@ -865,20 +954,9 @@ class KomfortRollladensteuerung extends IPSModule
         }
     }
 
-    public function CreateScriptExample(): void
-    {
-        $scriptID = IPS_CreateScript(0);
-        IPS_SetName($scriptID, 'Beispielskript (Komfort-Rollladensteuerung #' . $this->InstanceID . ')');
-        $scriptContent = "<?php\n\n// Methode:\n// KRS_MoveBlind(integer \$InstanceID, integer \$Position, integer \$Duration, integer \$DurationUnit);\n\n### Beispiele:\n\n// Rollladen auf 0% schließen:\nKRS_MoveBlind(" . $this->InstanceID . ", 0, 0, 0);\n\n// Rollladen für 180 Sekunden öffnen:\nKRS_MoveBlind(" . $this->InstanceID . ", 100, 180, 0);\n\n// Rollladen für 5 Minuten öffnen:\nKRS_MoveBlind(" . $this->InstanceID . ", 100, 5, 1);\n\n// Rollladen auf 70% öffnen:\nKRS_MoveBlind(" . $this->InstanceID . ', 70, 0, 0);';
-        IPS_SetScriptContent($scriptID, $scriptContent);
-        IPS_SetParent($scriptID, $this->InstanceID);
-        IPS_SetPosition($scriptID, 100);
-        IPS_SetHidden($scriptID, true);
-        if ($scriptID != 0) {
-            echo 'Beispielskript wurde erfolgreich erstellt!';
-        }
-    }
-
+    /**
+     * Registers the sleep mode timer.
+     */
     private function RegisterSleepModeTimer(): void
     {
         $this->RegisterTimer('SleepMode', 0, 'KRS_DeactivateSleepModeTimer(' . $this->InstanceID . ');');
@@ -895,68 +973,23 @@ class KomfortRollladensteuerung extends IPSModule
         $this->SetValue('SleepModeTimer', date('d.m.Y, H:i:s', ($timestamp)));
     }
 
-    public function DeactivateSleepModeTimer(): void
-    {
-        $this->SetValue('SleepMode', false);
-        $this->SetTimerInterval('SleepMode', 0);
-        $this->SetValue('SleepModeTimer', '-');
-    }
-
     /**
-     * Updates the blind slider, triggered by actuator.
+     * Checks the maintenance mode.
+     *
+     * @return bool
      */
-    private function UpdateBlindSlider(): void
-    {
-        $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
-        $id = $this->ReadPropertyInteger('ActuatorActivityStatus');
-        if ($id != 0 && @IPS_ObjectExists($id)) {
-            if (GetValue($id) == 0) {
-                $id = $this->ReadPropertyInteger('ActuatorBlindPosition');
-                if ($id != 0 && @IPS_ObjectExists($id)) {
-                    $actualPosition = intval($this->GetActualBlindPosition());
-                    $this->SendDebug(__FUNCTION__, 'Neue Position: ' . $actualPosition . '%.', 0);
-                    $blindMode = 0;
-                    if ($actualPosition > 0) {
-                        $blindMode = 3;
-                    }
-                    $this->SetValue('BlindMode', intval($blindMode));
-                    $this->SetValue('BlindSlider', intval($actualPosition));
-                    $profile = 'KRS.' . $this->InstanceID . '.PositionPresets';
-                    $associations = IPS_GetVariableProfile($profile)['Associations'];
-                    if (!empty($associations)) {
-                        $closestPreset = null;
-                        foreach ($associations as $association) {
-                            if ($closestPreset === null || abs($actualPosition - $closestPreset) > abs($association['Value'] - $actualPosition)) {
-                                $closestPreset = $association['Value'];
-                            }
-                        }
-                    }
-                    if (isset($closestPreset)) {
-                        $this->SetValue('PositionPresets', $closestPreset);
-                    }
-                    if ($this->ReadPropertyBoolean('ActuatorUpdateSetpointPosition')) {
-                        $this->SetValue('SetpointPosition', $actualPosition);
-                    }
-                    if ($this->ReadPropertyBoolean('ActuatorUpdateLastPosition')) {
-                        $this->SetValue('LastPosition', $actualPosition);
-                    }
-                }
-            }
-        }
-    }
-
     private function CheckMaintenanceMode(): bool
     {
-        $result = true;
+        $result = false;
         $status = 102;
         if ($this->ReadPropertyBoolean('MaintenanceMode')) {
-            $result = false;
+            $result = true;
             $status = 104;
             $this->SendDebug(__FUNCTION__, 'Abbruch, der Wartungsmodus ist aktiv!', 0);
             $this->LogMessage('ID ' . $this->InstanceID . ', ' . __FUNCTION__ . ', Abbruch, der Wartungsmodus ist aktiv!', KL_WARNING);
         }
         $this->SetStatus($status);
-        IPS_SetDisabled($this->InstanceID, !$result);
+        IPS_SetDisabled($this->InstanceID, $result);
         return $result;
     }
 
@@ -987,5 +1020,70 @@ class KomfortRollladensteuerung extends IPSModule
             }
         }
         return $result;
+    }
+
+    /**
+     * Gets a string from timestamp.
+     *
+     * @param int $Timestamp
+     * @return string
+     */
+    private function GetTimeStampString(int $Timestamp): string
+    {
+        $day = date('j', ($Timestamp));
+        $month = date('F', ($Timestamp));
+        switch ($month) {
+            case 'January':
+                $month = 'Januar';
+                break;
+
+            case 'February':
+                $month = 'Februar';
+                break;
+
+            case 'March':
+                $month = 'März';
+                break;
+
+            case 'April':
+                $month = 'April';
+                break;
+
+            case 'May':
+                $month = 'Mai';
+                break;
+
+            case 'June':
+                $month = 'Juni';
+                break;
+
+            case 'July':
+                $month = 'Juli';
+                break;
+
+            case 'August':
+                $month = 'August';
+                break;
+
+            case 'September':
+                $month = 'September';
+                break;
+
+            case 'October':
+                $month = 'Oktober';
+                break;
+
+            case 'November':
+                $month = 'November';
+                break;
+
+            case 'December':
+                $month = 'Dezember';
+                break;
+
+        }
+        $year = date('Y', ($Timestamp));
+        $time = date('H:i:s', ($Timestamp));
+        return $day . '. ' . $month . ' ' . $year . ' ' . $time;
     }
 }

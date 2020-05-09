@@ -45,6 +45,9 @@ trait KRS_weeklySchedule
     public function ExecuteWeeklyScheduleAction(): void
     {
         $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
+        if ($this->CheckMaintenanceMode()) {
+            return;
+        }
         $this->SendDebug(__FUNCTION__, 'Der Wochenplan hat ausgelöst.', 0);
         // Check event plan
         if (!$this->ValidateWeeklySchedule()) {
@@ -92,17 +95,7 @@ trait KRS_weeklySchedule
                 foreach ($settings as $setting) {
                     if ($setting['UseSettings']) {
                         // Check conditions
-                        $conditions = [
-                            ['type' => 0, 'condition' => ['Position' => $setting['Position'], 'CheckPositionDifference' => $setting['CheckPositionDifference']]],
-                            ['type' => 1, 'condition' => ['Position' => $setting['Position'], 'CheckLockoutProtection' => $setting['CheckLockoutProtection']]],
-                            ['type' => 2, 'condition' => $setting['CheckAutomaticMode']],
-                            ['type' => 3, 'condition' => $setting['CheckSleepMode']],
-                            ['type' => 4, 'condition' => $setting['CheckBlindMode']],
-                            ['type' => 5, 'condition' => $setting['CheckIsDay']],
-                            ['type' => 6, 'condition' => $setting['CheckTwilight']],
-                            ['type' => 7, 'condition' => $setting['CheckPresence']],
-                            ['type' => 8, 'condition' => $setting['CheckDoorWindowStatus']]];
-                        $checkConditions = $this->CheckConditions(json_encode($conditions));
+                        $checkConditions = $this->CheckAllConditions(json_encode($setting));
                         if (!$checkConditions) {
                             continue;
                         }

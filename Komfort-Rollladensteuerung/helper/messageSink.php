@@ -7,7 +7,7 @@ trait KRS_messageSink
 {
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
     {
-        if (!$this->CheckMaintenanceMode()) {
+        if ($this->CheckMaintenanceMode()) {
             return;
         }
         if ($this->ReadPropertyBoolean('UseMessageSinkDebug')) {
@@ -28,14 +28,12 @@ trait KRS_messageSink
             // $Data[2] = last value
             case VM_UPDATE:
                 // Actuator blind position
-                if ($this->ReadPropertyBoolean('ActuatorUpdateBlindPosition')) {
-                    $id = $this->ReadPropertyInteger('ActuatorBlindPosition');
-                    if ($id != 0 && @IPS_ObjectExists($id)) {
-                        if ($SenderID == $id) {
-                            if ($Data[1]) {
-                                $this->SendDebug(__FUNCTION__, 'Die Rollladenposition hat sich geändert.', 0);
-                                $this->UpdateBlindSlider();
-                            }
+                $id = $this->ReadPropertyInteger('ActuatorBlindPosition');
+                if ($id != 0 && @IPS_ObjectExists($id)) {
+                    if ($SenderID == $id) {
+                        if ($Data[1]) {
+                            $this->SendDebug(__FUNCTION__, 'Die Rollladenposition hat sich geändert.', 0);
+                            $this->UpdateBlindPosition();
                         }
                     }
                 }

@@ -11,6 +11,9 @@ trait KRS_isDayDetection
     public function ExecuteIsDayDetection(): void
     {
         $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
+        if ($this->CheckMaintenanceMode()) {
+            return;
+        }
         $id = $this->ReadPropertyInteger('IsDay');
         $this->SendDebug(__FUNCTION__, 'Die Variable ' . $id . ' (Ist es Tag) hat sich geändert!', 0);
         $actualStatus = boolval(GetValue($id)); // false = night, true = day

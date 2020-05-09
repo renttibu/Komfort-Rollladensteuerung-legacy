@@ -11,6 +11,9 @@ trait KRS_twilightDetection
     public function ExecuteTwilightDetection(): void
     {
         $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
+        if ($this->CheckMaintenanceMode()) {
+            return;
+        }
         $id = $this->ReadPropertyInteger('TwilightStatus');
         $this->SendDebug(__FUNCTION__, 'Die Variable ' . $id . ' (Dämmerungsstatus) hat sich geändert!', 0);
         $actualStatus = boolval(GetValue($id)); // false = day, true = night

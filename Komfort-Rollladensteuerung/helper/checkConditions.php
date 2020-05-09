@@ -6,6 +6,33 @@ declare(strict_types=1);
 trait KRS_checkConditions
 {
     /**
+     * Checks all conditions.
+     *
+     * @param string $Settings
+     * @return bool
+     * false    = mismatch
+     * true     = condition is valid
+     *
+     */
+    private function CheckAllConditions(string $Settings): bool
+    {
+        $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
+        // Check conditions
+        $setting = json_decode($Settings, true);
+        $conditions = [
+            ['type' => 0, 'condition' => ['Position' => $setting['Position'], 'CheckPositionDifference' => $setting['CheckPositionDifference']]],
+            ['type' => 1, 'condition' => ['Position' => $setting['Position'], 'CheckLockoutProtection' => $setting['CheckLockoutProtection']]],
+            ['type' => 2, 'condition' => $setting['CheckAutomaticMode']],
+            ['type' => 3, 'condition' => $setting['CheckSleepMode']],
+            ['type' => 4, 'condition' => $setting['CheckBlindMode']],
+            ['type' => 5, 'condition' => $setting['CheckIsDay']],
+            ['type' => 6, 'condition' => $setting['CheckTwilight']],
+            ['type' => 7, 'condition' => $setting['CheckPresence']],
+            ['type' => 8, 'condition' => $setting['CheckDoorWindowStatus']]];
+        return $this->CheckConditions(json_encode($conditions));
+    }
+
+    /**
      * Checks the conditions.
      *
      * @param string $Conditions
@@ -121,12 +148,13 @@ trait KRS_checkConditions
             $maximalPosition = $actualBlindPosition + $range;
             $this->SendDebug(__FUNCTION__, 'Maximale Position: ' . $maximalPosition . '%.', 0);
             if ($actualBlindPosition > 0) {
-                if ($newBlindPosition < $minimalPosition || $newBlindPosition > $maximalPosition) {
-                    $this->SendDebug(__FUNCTION__, 'Abbruch, der Positionsunterschied ist zu groß!', 0);
+                if ($newBlindPosition > $minimalPosition && $newBlindPosition < $maximalPosition) {
+                    $this->SendDebug(__FUNCTION__, 'Abbruch, der Positionsunterschied ist zu gering!', 0);
                     $result = false;
+                } else {
+                    $this->SendDebug(__FUNCTION__, 'Neue Position: ' . $newBlindPosition . '% entspricht der Bedingung.', 0);
                 }
             }
-            $this->SendDebug(__FUNCTION__, 'Neue Position: ' . $newBlindPosition . '% entspricht der Bedingung.', 0);
         }
         return $result;
     }

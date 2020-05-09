@@ -16,6 +16,9 @@ trait KRS_sunriseSunset
     public function ExecuteSunriseSunsetAction(int $VariableID, int $Mode): void
     {
         $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
+        if ($this->CheckMaintenanceMode()) {
+            return;
+        }
         $modeName = 'Sonnenaufgang';
         $variableName = 'Sunrise';
         $actionName = 'SunriseAction';
@@ -34,17 +37,8 @@ trait KRS_sunriseSunset
         if (!empty($settings)) {
             foreach ($settings as $setting) {
                 if ($setting['UseSettings']) {
-                    $conditions = [
-                        ['type' => 0, 'condition' => ['Position' => $setting['Position'], 'CheckPositionDifference' => $setting['CheckPositionDifference']]],
-                        ['type' => 1, 'condition' => ['Position' => $setting['Position'], 'CheckLockoutProtection' => $setting['CheckLockoutProtection']]],
-                        ['type' => 2, 'condition' => $setting['CheckAutomaticMode']],
-                        ['type' => 3, 'condition' => $setting['CheckSleepMode']],
-                        ['type' => 4, 'condition' => $setting['CheckBlindMode']],
-                        ['type' => 5, 'condition' => $setting['CheckIsDay']],
-                        ['type' => 6, 'condition' => $setting['CheckTwilight']],
-                        ['type' => 7, 'condition' => $setting['CheckPresence']],
-                        ['type' => 8, 'condition' => $setting['CheckDoorWindowStatus']]];
-                    $checkConditions = $this->CheckConditions(json_encode($conditions));
+                    // Check conditions
+                    $checkConditions = $this->CheckAllConditions(json_encode($setting));
                     if (!$checkConditions) {
                         continue;
                     }
