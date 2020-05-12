@@ -26,7 +26,7 @@
         },
         {
           "type": "Label",
-          "caption": "Version:\t\t\t2.00-14"
+          "caption": "Version:\t\t\t2.00-15"
         },
         {
           "type": "Label",
@@ -6480,6 +6480,24 @@
                     "value": 2
                   }
                 ]
+              }
+            },
+            {
+              "name": "ExecutionTimeAfter",
+              "caption": "Ausführung nach",
+              "width": "150px",
+              "add": "{\"hour\":0,\"minute\":0,\"second\":0}",
+              "edit": {
+                "type": "SelectTime"
+              }
+            },
+            {
+              "name": "ExecutionTimeBefore",
+              "caption": "Ausführung vor",
+              "width": "150px",
+              "add": "{\"hour\":0,\"minute\":0,\"second\":0}",
+              "edit": {
+                "type": "SelectTime"
               }
             }
           ]

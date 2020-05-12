@@ -35,6 +35,11 @@ trait KRS_trigger
                             if (!$checkConditions) {
                                 continue;
                             }
+                            // Check time
+                            $checkTime = $this->CheckTimeCondition($setting['ExecutionTimeAfter'], $setting['ExecutionTimeBefore']);
+                            if (!$checkTime) {
+                                return;
+                            }
                             // Trigger action
                             $position = $setting['Position'];
                             if ($setting['UpdateSetpointPosition']) {

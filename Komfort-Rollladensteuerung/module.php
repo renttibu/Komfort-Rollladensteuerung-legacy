@@ -12,9 +12,9 @@
  * @license     CC BY-NC-SA 4.0
  *              https://creativecommons.org/licenses/by-nc-sa/4.0/
  *
- * @version     2.00-14
- * @date        2020-05-09, 18:00, 1589043600
- * @review      2020-05-09, 18:00
+ * @version     2.00-15
+ * @date        2020-05-12, 18:00, 1589302800
+ * @review      2020-05-12, 18:00
  *
  * @see         https://github.com/ubittner/Komfort-Rollladensteuerung
  *

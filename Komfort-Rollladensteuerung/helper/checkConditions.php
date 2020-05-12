@@ -535,4 +535,63 @@ trait KRS_checkConditions
         }
         return $result;
     }
+
+    /**
+     * Checks the execution time.
+     *
+     * @param string $ExecutionTimeAfter
+     * @param string $ExecutionTimeBefore
+     * @return bool
+     * false    = mismatch
+     * true     = condition is valid
+     */
+    private function CheckTimeCondition(string $ExecutionTimeAfter, string $ExecutionTimeBefore): bool
+    {
+        $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
+        $result = true;
+        // Actual time
+        $actualTime = time();
+        $this->SendDebug(__FUNCTION__, 'Aktuelle Uhrzeit: ' . date('H:i:s', $actualTime) . ', ' . $actualTime . ', ' . date('d.m.Y', $actualTime), 0);
+        // Time after
+        $timeAfter = json_decode($ExecutionTimeAfter);
+        $timeAfterHour = $timeAfter->hour;
+        $timeAfterMinute = $timeAfter->minute;
+        $timeAfterSecond = $timeAfter->second;
+        $timestampAfter = mktime($timeAfterHour, $timeAfterMinute, $timeAfterSecond, (int) date('n'), (int) date('j'), (int) date('Y'));
+        // Time before
+        $timeBefore = json_decode($ExecutionTimeBefore);
+        $timeBeforeHour = $timeBefore->hour;
+        $timeBeforeMinute = $timeBefore->minute;
+        $timeBeforeSecond = $timeBefore->second;
+        $timestampBefore = mktime($timeBeforeHour, $timeBeforeMinute, $timeBeforeSecond, (int) date('n'), (int) date('j'), (int) date('Y'));
+        if ($timestampAfter != $timestampBefore) {
+            $this->SendDebug(__FUNCTION__, 'Bedingung Uhrzeit nach: ' . date('H:i:s', $timestampAfter) . ', ' . $timestampAfter . ', ' . date('d.m.Y', $timestampAfter), 0);
+            // Same day
+            if ($timestampAfter <= $timestampBefore) {
+                $this->SendDebug(__FUNCTION__, 'Bedingung Uhrzeit vor: ' . date('H:i:s', $timestampBefore) . ', ' . $timestampBefore . ', ' . date('d.m.Y', $timestampBefore), 0);
+                $this->SendDebug(__FUNCTION__, 'Zeitraum ist am gleichen Tag', 0);
+                if ($actualTime >= $timestampAfter && $actualTime <= $timestampBefore) {
+                    $this->SendDebug(__FUNCTION__, 'Aktuelle Zeit liegt im definierten Zeitraum.', 0);
+                } else {
+                    $result = false;
+                    $this->SendDebug(__FUNCTION__, 'Aktuelle Zeit liegt außerhalb des definierten Zeitraums.', 0);
+                }
+            } else { // Overnight
+                if ($actualTime > $timestampBefore) {
+                    $this->SendDebug(__FUNCTION__, 'Zeitraum erstreckt sich über zwei Tage.', 0);
+                    $timestampBefore = mktime($timeBeforeHour, $timeBeforeMinute, $timeBeforeSecond, (int) date('n'), (int) date('j') + 1, (int) date('Y'));
+                }
+                $this->SendDebug(__FUNCTION__, 'Bedingung Uhrzeit vor: ' . date('H:i:s', $timestampBefore) . ', ' . $timestampBefore . ', ' . date('d.m.Y', $timestampBefore), 0);
+                if ($actualTime >= $timestampAfter && $actualTime <= $timestampBefore) {
+                    $this->SendDebug(__FUNCTION__, 'Aktuelle Zeit liegt im definierten Zeitraum.', 0);
+                } else {
+                    $this->SendDebug(__FUNCTION__, 'Aktuelle Zeit liegt außerhalb des definierten Zeitraum.', 0);
+                    $result = false;
+                }
+            }
+        } else {
+            $this->SendDebug(__FUNCTION__, 'Aktuelle Zeit liegt im definierten Zeitraum.', 0);
+        }
+        return $result;
+    }
 }
