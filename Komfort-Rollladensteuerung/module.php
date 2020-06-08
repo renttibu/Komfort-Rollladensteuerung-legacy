@@ -12,7 +12,7 @@
  * @license     CC BY-NC-SA 4.0
  *              https://creativecommons.org/licenses/by-nc-sa/4.0/
  *
- * @version     2.00-15
+ * @version     2.00-16
  * @date        2020-05-12, 18:00, 1589302800
  * @review      2020-05-12, 18:00
  *
@@ -412,7 +412,7 @@ class KomfortRollladensteuerung extends IPSModule
     //#################### Private
 
     /**
-     * Applies the changes if ther kernel is ready.
+     * Applies the changes if the kernel is ready.
      */
     private function KernelReady()
     {

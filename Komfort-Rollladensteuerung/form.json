@@ -26,7 +26,7 @@
         },
         {
           "type": "Label",
-          "caption": "Version:\t\t\t2.00-15"
+          "caption": "Version:\t\t\t2.00-16"
         },
         {
           "type": "Label",
@@ -3401,14 +3401,14 @@
         {
           "type": "ExpansionPanel",
           "caption": "Aktionen",
-          "add": true,
-          "delete": true,
           "items": [
             {
               "type": "List",
               "name": "SunsetActions",
               "caption": "Aktionen",
               "rowCount": 3,
+              "add": true,
+              "delete": true,
               "columns": [
                 {
                   "name": "LabelSunset",
