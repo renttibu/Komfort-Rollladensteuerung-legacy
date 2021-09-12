@@ -49,8 +49,7 @@ trait KRS_doorWindowSensors
                             // None
                             case 0:
                                 $this->SendDebug(__FUNCTION__, 'Abbruch, keine Aktion ausgewählt!', 0);
-                                return;
-                                break;
+                                continue 2;
 
                             // Defined position
                             case 1:

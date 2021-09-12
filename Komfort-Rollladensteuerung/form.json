@@ -26,15 +26,15 @@
         },
         {
           "type": "Label",
-          "caption": "Version:\t\t\t2.00-17"
+          "caption": "Version:\t\t\t2.00-18"
         },
         {
           "type": "Label",
-          "caption": "Datum:\t\t\t09. Mai 2020"
+          "caption": "Datum:\t\t\t12. September 2021"
         },
         {
           "type": "Label",
-          "caption": "Uhrzeit:\t\t\t18:00"
+          "caption": "Uhrzeit:\t\t\t14:00"
         },
         {
           "type": "Label",
@@ -4598,8 +4598,35 @@
                   }
                 },
                 {
+                  "name": "SelectPosition",
+                  "caption": "Positionsauswahl",
+                  "add": 0,
+                  "width": "170px",
+                  "edit": {
+                    "type": "Select",
+                    "options": [
+                      {
+                        "caption": "Keine",
+                        "value": 0
+                      },
+                      {
+                        "caption": "Definierte Position",
+                        "value": 1
+                      },
+                      {
+                        "caption": "Letzte Position",
+                        "value": 2
+                      },
+                      {
+                        "caption": "Soll-Position",
+                        "value": 3
+                      }
+                    ]
+                  }
+                },
+                {
                   "name": "Position",
-                  "caption": "Position",
+                  "caption": "Definierte Position",
                   "width": "150px",
                   "add": 0,
                   "edit": {
@@ -4859,8 +4886,35 @@
                   }
                 },
                 {
+                  "name": "SelectPosition",
+                  "caption": "Positionsauswahl",
+                  "add": 0,
+                  "width": "170px",
+                  "edit": {
+                    "type": "Select",
+                    "options": [
+                      {
+                        "caption": "Keine",
+                        "value": 0
+                      },
+                      {
+                        "caption": "Definierte Position",
+                        "value": 1
+                      },
+                      {
+                        "caption": "Letzte Position",
+                        "value": 2
+                      },
+                      {
+                        "caption": "Soll-Position",
+                        "value": 3
+                      }
+                    ]
+                  }
+                },
+                {
                   "name": "Position",
-                  "caption": "Position",
+                  "caption": "Definierte Position",
                   "width": "150px",
                   "add": 0,
                   "edit": {
@@ -5136,7 +5190,34 @@
                   }
                 },
                 {
-                  "name": "Position",
+                  "name": "SelectPosition",
+                  "caption": "Positionsauswahl",
+                  "add": 0,
+                  "width": "170px",
+                  "edit": {
+                    "type": "Select",
+                    "options": [
+                      {
+                        "caption": "Keine",
+                        "value": 0
+                      },
+                      {
+                        "caption": "Definierte Position",
+                        "value": 1
+                      },
+                      {
+                        "caption": "Letzte Position",
+                        "value": 2
+                      },
+                      {
+                        "caption": "Soll-Position",
+                        "value": 3
+                      }
+                    ]
+                  }
+                },
+                {
+                  "name": "Definierte Position",
                   "caption": "Position",
                   "width": "150px",
                   "add": 0,
@@ -5397,8 +5478,35 @@
                   }
                 },
                 {
+                  "name": "SelectPosition",
+                  "caption": "Positionsauswahl",
+                  "add": 0,
+                  "width": "170px",
+                  "edit": {
+                    "type": "Select",
+                    "options": [
+                      {
+                        "caption": "Keine",
+                        "value": 0
+                      },
+                      {
+                        "caption": "Definierte Position",
+                        "value": 1
+                      },
+                      {
+                        "caption": "Letzte Position",
+                        "value": 2
+                      },
+                      {
+                        "caption": "Soll-Position",
+                        "value": 3
+                      }
+                    ]
+                  }
+                },
+                {
                   "name": "Position",
-                  "caption": "Position",
+                  "caption": "Definierte Position",
                   "width": "150px",
                   "add": 0,
                   "edit": {
