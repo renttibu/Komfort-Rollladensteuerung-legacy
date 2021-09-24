@@ -26,7 +26,7 @@
         },
         {
           "type": "Label",
-          "caption": "Version:\t\t\t2.00-18"
+          "caption": "Version:\t\t\t2.00-19"
         },
         {
           "type": "Label",
@@ -5217,8 +5217,8 @@
                   }
                 },
                 {
-                  "name": "Definierte Position",
-                  "caption": "Position",
+                  "name": "Position",
+                  "caption": "Definierte Position",
                   "width": "150px",
                   "add": 0,
                   "edit": {
