@@ -71,7 +71,7 @@ trait KRS_twilightDetection
                             continue;
                         }
                         // Trigger action
-                        $position = $setting['Position'];
+                        //$position = $setting['Position'];
                         if ($setting['UpdateSetpointPosition']) {
                             $this->SetValue('SetpointPosition', $position);
                         }

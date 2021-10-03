@@ -42,7 +42,7 @@ trait KRS_moveBlind
         }
         $actualBlindMode = intval($this->GetValue('BlindMode'));
         $actualBlindSliderValue = floatval($this->GetValue('BlindSlider'));
-        $actualPositionPreset = intval($this->GetValue('PositionPresets'));
+        //$actualPositionPreset = intval($this->GetValue('PositionPresets'));
         $actualLastPosition = intval($this->GetValue('LastPosition'));
         // Closed
         if ($Position == 0) {
@@ -70,7 +70,7 @@ trait KRS_moveBlind
         if (isset($mode)) {
             $this->SetValue('BlindMode', $mode);
             $this->SetValue('BlindSlider', $Position);
-            $this->SetClosestPositionPreset($Position);
+            //$this->SetClosestPositionPreset($Position);
             $variableType = @IPS_GetVariable($id)['VariableType'];
             switch ($variableType) {
                 // Boolean
@@ -124,7 +124,7 @@ trait KRS_moveBlind
                         // Revert switch
                         $this->SetValue('BlindMode', $actualBlindMode);
                         $this->SetValue('BlindSlider', $actualBlindSliderValue);
-                        $this->SetValue('PositionPresets', $actualPositionPreset);
+                        //$this->SetValue('PositionPresets', $actualPositionPreset);
                         $this->SetValue('LastPosition', $actualLastPosition);
                     } else {
                         if (isset($modeText)) {
@@ -197,7 +197,7 @@ trait KRS_moveBlind
                     }
                     $this->SetValue('BlindMode', intval($blindMode));
                     $this->SetValue('BlindSlider', intval($actualPosition));
-                    $this->SetClosestPositionPreset($actualPosition);
+                    //$this->SetClosestPositionPreset($actualPosition);
                     if ($this->ReadPropertyBoolean('ActuatorUpdateSetpointPosition')) {
                         $this->SetValue('SetpointPosition', $actualPosition);
                     }

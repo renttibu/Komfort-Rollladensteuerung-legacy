@@ -71,7 +71,7 @@ trait KRS_isDayDetection
                             continue;
                         }
                         // Trigger action
-                        $position = $setting['Position'];
+                        //$position = $setting['Position'];
                         if ($setting['UpdateSetpointPosition']) {
                             $this->SetValue('SetpointPosition', $position);
                         }

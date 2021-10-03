@@ -26,15 +26,15 @@
         },
         {
           "type": "Label",
-          "caption": "Version:\t\t\t2.00-19"
+          "caption": "Version:\t\t\t2.00-20"
         },
         {
           "type": "Label",
-          "caption": "Datum:\t\t\t12. September 2021"
+          "caption": "Datum:\t\t\t03. Oktober 2021"
         },
         {
           "type": "Label",
-          "caption": "Uhrzeit:\t\t\t14:00"
+          "caption": "Uhrzeit:\t\t\t21:18"
         },
         {
           "type": "Label",
@@ -997,6 +997,11 @@
               "type": "ExpansionPanel",
               "caption": "Optionen",
               "items": [
+                {
+                  "type": "CheckBox",
+                  "name": "BlindSliderDisableAction",
+                  "caption": "Nur Anzeige in %"
+                },
                 {
                   "type": "CheckBox",
                   "name": "BlindSliderUpdateSetpointPosition",

@@ -91,6 +91,12 @@ class KomfortRollladensteuerung extends IPSModule
         if (IPS_GetKernelRunlevel() != KR_READY) {
             return;
         }
+        //Blind slider
+        if ($this->ReadPropertyBoolean('BlindSliderDisableAction')) {
+            $this->DisableAction('BlindSlider');
+        } else {
+            $this->EnableAction('BlindSlider');
+        }
         // Register messages
         $this->RegisterMessages();
         // Update position presets
@@ -400,13 +406,14 @@ class KomfortRollladensteuerung extends IPSModule
     public function ExecutePositionPreset(int $Position): void
     {
         $this->SendDebug(__FUNCTION__, 'Die Methode wird ausgeführt. (' . microtime(true) . ')', 0);
+        $this->SetValue('PositionPresets', $Position);
         if ($this->ReadPropertyBoolean('PositionPresetsUpdateSetpointPosition')) {
             $this->SetValue('SetpointPosition', $Position);
         }
         if ($this->ReadPropertyBoolean('PositionPresetsUpdateLastPosition')) {
             $this->SetValue('LastPosition', $Position);
         }
-        $this->MoveBlind(intval($Position), 0, 0);
+        $this->MoveBlind($Position);
     }
 
     //#################### Private
@@ -435,6 +442,7 @@ class KomfortRollladensteuerung extends IPSModule
         $this->RegisterPropertyString('Timer', '[{"LabelTimer":"","UseSettings":true,"Position":50,"UpdateSetpointPosition":false,"UpdateLastPosition":false,"Duration":30,"DurationUnit":1,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0,"CheckBlindMode":0,"CheckIsDay":0,"CheckTwilight":0,"CheckPresence":0,"CheckDoorWindowStatus":0,"LabelOperationalAction":"","OperationalAction":1,"DefinedPosition":0}]');
         $this->RegisterPropertyString('OpenBlind', '[{"LabelOpenBlind":"","UseSettings":true,"Position":100,"UpdateSetpointPosition":false,"UpdateLastPosition":false,"LabelSwitchingConditions":"","CheckPositionDifference":0,"CheckLockoutProtection":0,"CheckAutomaticMode":0,"CheckSleepMode":0,"CheckBlindMode":0,"CheckIsDay":0,"CheckTwilight":0,"CheckPresence":0,"CheckDoorWindowStatus":0}]');
         $this->RegisterPropertyBoolean('EnableBlindSlider', true);
+        $this->RegisterPropertyBoolean('BlindSliderDisableAction', false);
         $this->RegisterPropertyBoolean('BlindSliderUpdateSetpointPosition', false);
         $this->RegisterPropertyBoolean('BlindSliderUpdateLastPosition', false);
         $this->RegisterPropertyBoolean('EnablePositionPresets', true);
